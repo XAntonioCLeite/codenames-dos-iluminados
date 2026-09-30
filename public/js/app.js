@@ -1338,6 +1338,8 @@
     const blueFound = Math.max(0, totalBlue - blueRemaining);
     if (lblRemainingLabelBlue) {
       lblRemainingLabelBlue.textContent = `${blueRemaining} RESTANTE${blueRemaining === 1 ? '' : 'S'}`;
+    }
+
     pipsTrackBlue.innerHTML = '';
     for (let i = 0; i < totalBlue; i++) {
       const pip = document.createElement('div');
