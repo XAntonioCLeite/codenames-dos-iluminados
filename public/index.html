@@ -28,6 +28,17 @@
       </div>
     </div>
 
+    <div class="header-room-pill" id="headerRoomPill" style="display: none;">
+      <span class="header-room-lbl">SALA:</span>
+      <span class="header-room-val" id="lblHeaderRoomCode">------</span>
+      <button type="button" class="btn-header-copy" id="btnHeaderCopy" title="Copiar código da sala">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+      </button>
+    </div>
+
     <div class="header-actions">
       <button class="btn-ghost-icon" id="btnSoundToggle" title="Alternar Som" aria-label="Som">
         <svg id="iconSoundOn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -99,6 +110,41 @@
   <main class="view" id="viewLobby">
     <div class="lobby-viewport">
       
+      <!-- Top Room Code & Invite Banner -->
+      <section class="lobby-room-banner">
+        <div class="room-banner-left">
+          <div class="room-badge-seal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </div>
+          <div class="room-banner-details">
+            <div class="room-banner-label">CÓDIGO DA MESA</div>
+            <div class="room-banner-code-wrap">
+              <span class="room-banner-code" id="lblLobbyRoomCode" title="Clique para copiar código">------</span>
+              <button type="button" class="btn-copy-tag" id="btnCopyLobbyCode" title="Copiar código">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span id="lblBtnCopyCodeText">Copiar Código</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="room-banner-right">
+          <button type="button" class="btn-invite-friends" id="btnCopyLobbyLink">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+            <span id="lblBtnCopyLinkText">Copiar Link de Convite</span>
+          </button>
+        </div>
+      </section>
+
       <!-- Top: Spectators Row -->
       <section class="spectators-row">
         <div class="spectators-header" id="btnJoinSpectators" role="button" tabindex="0">

@@ -492,6 +492,202 @@ body {
   gap: 20px;
 }
 
+/* ========================================================
+   LOBBY ROOM BANNER & INVITE CONTROLS
+   ======================================================== */
+.lobby-room-banner {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(26, 26, 32, 0.95) 50%, rgba(20, 20, 24, 0.95) 100%);
+  border: 1px solid var(--gold-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(212, 175, 55, 0.15);
+  flex-wrap: wrap;
+}
+
+.room-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.room-badge-seal {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  background: rgba(212, 175, 55, 0.12);
+  border: 1px solid var(--gold-border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold-primary);
+  flex-shrink: 0;
+}
+
+.room-badge-seal svg {
+  width: 22px;
+  height: 22px;
+}
+
+.room-banner-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.room-banner-label {
+  font-family: var(--font-seal);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--gold-primary);
+  text-transform: uppercase;
+}
+
+.room-banner-code-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.room-banner-code {
+  font-family: var(--font-display);
+  font-size: 1.65rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(212, 175, 55, 0.4);
+  transition: all 0.2s ease;
+  user-select: all;
+  text-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
+}
+
+.room-banner-code:hover {
+  color: var(--gold-primary);
+  border-color: var(--gold-primary);
+  background: rgba(212, 175, 55, 0.12);
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.25);
+}
+
+.btn-copy-tag {
+  background: var(--tabletop-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 5px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-copy-tag:hover {
+  background: var(--tabletop-hover);
+  border-color: var(--gold-primary);
+  color: var(--gold-primary);
+}
+
+.btn-copy-tag svg {
+  width: 14px;
+  height: 14px;
+}
+
+.btn-invite-friends {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.22) 0%, rgba(212, 175, 55, 0.08) 100%);
+  border: 1px solid var(--gold-primary);
+  border-radius: var(--radius-sm);
+  color: var(--gold-primary);
+  font-family: var(--font-display);
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 10px 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(212, 175, 55, 0.15);
+  transition: all 0.2s ease;
+}
+
+.btn-invite-friends:hover {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.35) 0%, rgba(212, 175, 55, 0.18) 100%);
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-invite-friends svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Header Room Pill */
+.header-room-pill {
+  background: var(--tabletop-surface);
+  border: 1px solid var(--gold-border-subtle);
+  border-radius: 20px;
+  padding: 4px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  animation: fadeInPill 0.3s ease;
+}
+
+@keyframes fadeInPill {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.header-room-lbl {
+  font-family: var(--font-seal);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+.header-room-val {
+  font-family: var(--font-display);
+  font-size: 0.96rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--gold-primary);
+}
+
+.btn-header-copy {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s ease;
+}
+
+.btn-header-copy:hover {
+  color: var(--gold-primary);
+}
+
+.btn-header-copy svg {
+  width: 14px;
+  height: 14px;
+}
+
 /* Spectators Row */
 .spectators-row {
   background: var(--tabletop-surface);

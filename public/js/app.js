@@ -33,6 +33,9 @@
   const iconSoundOn = document.getElementById('iconSoundOn');
   const iconSoundOff = document.getElementById('iconSoundOff');
   const btnHeaderDecks = document.getElementById('btnHeaderDecks');
+  const headerRoomPill = document.getElementById('headerRoomPill');
+  const lblHeaderRoomCode = document.getElementById('lblHeaderRoomCode');
+  const btnHeaderCopy = document.getElementById('btnHeaderCopy');
 
   // Landing
   const inputNickname = document.getElementById('inputNickname');
@@ -41,6 +44,11 @@
   const btnJoinRoom = document.getElementById('btnJoinRoom');
 
   // Lobby
+  const lblLobbyRoomCode = document.getElementById('lblLobbyRoomCode');
+  const btnCopyLobbyCode = document.getElementById('btnCopyLobbyCode');
+  const lblBtnCopyCodeText = document.getElementById('lblBtnCopyCodeText');
+  const btnCopyLobbyLink = document.getElementById('btnCopyLobbyLink');
+  const lblBtnCopyLinkText = document.getElementById('lblBtnCopyLinkText');
   const btnJoinSpectators = document.getElementById('btnJoinSpectators');
   const lobbySpectatorsContainer = document.getElementById('lobbySpectatorsContainer');
   const lobbyBlueOperatives = document.getElementById('lobbyBlueOperatives');
@@ -423,10 +431,13 @@
 
     if (viewName === 'lobby') {
       viewLobby.classList.add('active');
+      if (headerRoomPill) headerRoomPill.style.display = 'inline-flex';
     } else if (viewName === 'game') {
       viewGame.classList.add('active');
+      if (headerRoomPill) headerRoomPill.style.display = 'inline-flex';
     } else {
       viewLanding.classList.add('active');
+      if (headerRoomPill) headerRoomPill.style.display = 'none';
     }
   }
 
@@ -907,14 +918,84 @@
   // ========================================================
   // GAMEPLAY INTERACTIONS
   // ========================================================
+  // ========================================================
+  // CLIPBOARD & SHARE HELPERS
+  // ========================================================
+  function copyTextToClipboard(text, successMessage) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(successMessage, 'success');
+      }).catch(() => {
+        fallbackCopyText(text, successMessage);
+      });
+    } else {
+      fallbackCopyText(text, successMessage);
+    }
+  }
+
+  function fallbackCopyText(text, successMessage) {
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      showToast(successMessage, 'success');
+    } catch (e) {
+      window.prompt('Copie o link ou código:', text);
+    }
+  }
+
+  if (lblLobbyRoomCode) {
+    lblLobbyRoomCode.addEventListener('click', () => {
+      if (!currentGameState || !currentGameState.roomId) return;
+      window.sounds.playClick();
+      copyTextToClipboard(currentGameState.roomId, `Código "${currentGameState.roomId}" copiado!`);
+    });
+  }
+
+  if (btnCopyLobbyCode) {
+    btnCopyLobbyCode.addEventListener('click', () => {
+      if (!currentGameState || !currentGameState.roomId) return;
+      window.sounds.playClick();
+      copyTextToClipboard(currentGameState.roomId, `Código "${currentGameState.roomId}" copiado!`);
+      if (lblBtnCopyCodeText) {
+        lblBtnCopyCodeText.textContent = 'Copiado!';
+        setTimeout(() => { lblBtnCopyCodeText.textContent = 'Copiar Código'; }, 2000);
+      }
+    });
+  }
+
+  if (btnCopyLobbyLink) {
+    btnCopyLobbyLink.addEventListener('click', () => {
+      if (!currentGameState || !currentGameState.roomId) return;
+      window.sounds.playClick();
+      const url = `${window.location.origin}${window.location.pathname}?room=${currentGameState.roomId}`;
+      copyTextToClipboard(url, 'Link de convite copiado para a área de transferência!');
+      if (lblBtnCopyLinkText) {
+        lblBtnCopyLinkText.textContent = 'Link Copiado!';
+        setTimeout(() => { lblBtnCopyLinkText.textContent = 'Copiar Link de Convite'; }, 2000);
+      }
+    });
+  }
+
+  if (btnHeaderCopy) {
+    btnHeaderCopy.addEventListener('click', () => {
+      if (!currentGameState || !currentGameState.roomId) return;
+      window.sounds.playClick();
+      copyTextToClipboard(currentGameState.roomId, `Código "${currentGameState.roomId}" copiado!`);
+    });
+  }
+
   btnCopyGameLink.addEventListener('click', () => {
     if (!currentGameState) return;
     const url = `${window.location.origin}${window.location.pathname}?room=${currentGameState.roomId}`;
-    navigator.clipboard.writeText(url).then(() => {
-      btnCopyGameLink.textContent = 'Copiado!';
-      setTimeout(() => btnCopyGameLink.textContent = 'Copiar Link', 2000);
-      showToast('Link da sala copiado com sucesso!', 'success');
-    });
+    copyTextToClipboard(url, 'Link da sala copiado com sucesso!');
+    btnCopyGameLink.textContent = 'Copiado!';
+    setTimeout(() => btnCopyGameLink.textContent = 'Copiar Link', 2000);
   });
 
   btnReturnToLobby.addEventListener('click', async () => {
@@ -1200,6 +1281,20 @@
     switchView('lobby');
     modalVictory.classList.remove('active');
 
+    // Update room code displays across lobby & header
+    if (lblLobbyRoomCode) lblLobbyRoomCode.textContent = state.roomId;
+    if (lblHeaderRoomCode) lblHeaderRoomCode.textContent = state.roomId;
+    if (headerRoomPill) headerRoomPill.style.display = 'inline-flex';
+
+    // Keep browser URL synced with ?room=CODE
+    if (window.history && window.history.replaceState && state.roomId) {
+      const currentUrl = new URL(window.location.href);
+      if (currentUrl.searchParams.get('room') !== state.roomId) {
+        currentUrl.searchParams.set('room', state.roomId);
+        window.history.replaceState(null, '', currentUrl.toString());
+      }
+    }
+
     // Spectators list
     lobbySpectatorsContainer.innerHTML = '';
     const spectators = state.players.filter(p => p.team === 'spectator');
@@ -1462,6 +1557,8 @@
     lastGameTurn = state.currentTurn;
 
     lblGameRoomCode.textContent = state.roomId;
+    if (lblHeaderRoomCode) lblHeaderRoomCode.textContent = state.roomId;
+    if (headerRoomPill) headerRoomPill.style.display = 'inline-flex';
     lblGameScoreRed.textContent = state.scores.red;
     lblGameScoreBlue.textContent = state.scores.blue;
 
