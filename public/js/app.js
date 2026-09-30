@@ -355,19 +355,25 @@
 
     updateSoundIcons();
 
-    // Tactile Audio Feedback Delegation (zero dead spots on UI interaction)
-    document.addEventListener('mouseover', (e) => {
-      const target = e.target.closest('button, .btn-primary-action, .btn-secondary-action, .btn-ghost-icon, .btn-card-small-action, .btn-count-quick, .quick-word-chip, .codenames-card:not(.revealed), .roster-player-chip, .score-pip');
-      if (target) {
-        window.sounds.playHoverTick();
-      }
-    }, { passive: true });
+    // Tactile Audio Feedback Delegation (mouse devices only, zero touch interference)
+    if (window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      document.addEventListener('mouseover', (e) => {
+        try {
+          const target = e.target.closest('button, .btn-primary-action, .btn-secondary-action, .btn-ghost-icon, .btn-card-small-action, .btn-count-quick, .quick-word-chip, .codenames-card:not(.revealed), .roster-player-chip, .score-pip');
+          if (target && window.sounds) {
+            window.sounds.playHoverTick();
+          }
+        } catch (_) {}
+      }, { passive: true });
+    }
 
     document.addEventListener('click', (e) => {
-      const btn = e.target.closest('button, .btn-primary-action, .btn-secondary-action, .btn-ghost-icon, .btn-card-small-action, .btn-count-quick, .btn-remove-quick-word');
-      if (btn && !btn.disabled) {
-        window.sounds.playClick();
-      }
+      try {
+        const btn = e.target.closest('button, .btn-primary-action, .btn-secondary-action, .btn-ghost-icon, .btn-card-small-action, .btn-count-quick, .btn-remove-quick-word');
+        if (btn && !btn.disabled && window.sounds) {
+          window.sounds.playClick();
+        }
+      } catch (_) {}
     }, { passive: true });
   }
 
@@ -445,8 +451,8 @@
   // LANDING ACTIONS
   // ========================================================
   btnCreateRoom.addEventListener('click', () => {
+    try { if (window.sounds) window.sounds.playClick(); } catch (_) {}
     const nickname = inputNickname.value.trim() || 'Agente Iluminado';
-    window.sounds.playClick();
 
     if (!socket) {
       showSystemAlert('Não foi possível inicializar a conexão com o servidor. Recarregue a página.', 'Erro de Conexão');
@@ -455,19 +461,18 @@
 
     if (!socket.connected) {
       btnCreateRoom.disabled = true;
-      const originalText = btnCreateRoom.textContent;
       btnCreateRoom.textContent = 'Conectando ao servidor...';
 
       const timeoutId = setTimeout(() => {
         btnCreateRoom.disabled = false;
-        btnCreateRoom.textContent = originalText;
-        showSystemAlert('O servidor em tempo real está inicializando (serviços gratuitos podem levar alguns instantes para acordar). Aguarde um instante e tente novamente.', 'Conectando...');
-      }, 9000);
+        btnCreateRoom.textContent = 'Criar Nova Mesa';
+        showSystemAlert('O servidor em tempo real está conectando. Aguarde alguns instantes e tente novamente.', 'Conectando...');
+      }, 4000);
 
       socket.once('connect', () => {
         clearTimeout(timeoutId);
         btnCreateRoom.disabled = false;
-        btnCreateRoom.textContent = originalText;
+        btnCreateRoom.textContent = 'Criar Nova Mesa';
         socket.emit('CREATE_ROOM', {
           nickname,
           selectedDeckIds: ['iluminados'],
@@ -479,12 +484,11 @@
     }
 
     btnCreateRoom.disabled = true;
-    const originalText = btnCreateRoom.textContent;
     btnCreateRoom.textContent = 'Criando Mesa...';
     setTimeout(() => {
       btnCreateRoom.disabled = false;
-      btnCreateRoom.textContent = originalText;
-    }, 4000);
+      btnCreateRoom.textContent = 'Criar Nova Mesa';
+    }, 2500);
 
     socket.emit('CREATE_ROOM', {
       nickname,
@@ -495,6 +499,7 @@
   });
 
   btnJoinRoom.addEventListener('click', () => {
+    try { if (window.sounds) window.sounds.playClick(); } catch (_) {}
     const nickname = inputNickname.value.trim() || 'Agente Convidado';
     const code = inputRoomCode.value.trim();
 
@@ -503,8 +508,6 @@
       return;
     }
 
-    window.sounds.playClick();
-
     if (!socket) {
       showSystemAlert('Não foi possível conectar ao servidor.', 'Erro de Conexão');
       return;
@@ -512,31 +515,29 @@
 
     if (!socket.connected) {
       btnJoinRoom.disabled = true;
-      const originalText = btnJoinRoom.textContent;
       btnJoinRoom.textContent = 'Conectando...';
 
       const timeoutId = setTimeout(() => {
         btnJoinRoom.disabled = false;
-        btnJoinRoom.textContent = originalText;
+        btnJoinRoom.textContent = 'Entrar na Sala';
         showSystemAlert('Aguardando conexão com o servidor multiplayer em tempo real...', 'Servidor Desconectado');
-      }, 9000);
+      }, 4000);
 
       socket.once('connect', () => {
         clearTimeout(timeoutId);
         btnJoinRoom.disabled = false;
-        btnJoinRoom.textContent = originalText;
+        btnJoinRoom.textContent = 'Entrar na Sala';
         socket.emit('JOIN_ROOM', { roomId: code, nickname });
       });
       return;
     }
 
     btnJoinRoom.disabled = true;
-    const originalText = btnJoinRoom.textContent;
     btnJoinRoom.textContent = 'Entrando...';
     setTimeout(() => {
       btnJoinRoom.disabled = false;
-      btnJoinRoom.textContent = originalText;
-    }, 4000);
+      btnJoinRoom.textContent = 'Entrar na Sala';
+    }, 2500);
 
     socket.emit('JOIN_ROOM', { roomId: code, nickname });
   });
@@ -546,10 +547,12 @@
   // ========================================================
   document.querySelectorAll('.btn-join-team').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const team = e.target.dataset.team;
-      const role = e.target.dataset.role;
+      const button = e.currentTarget || e.target.closest('.btn-join-team');
+      if (!button) return;
+      const team = button.dataset.team;
+      const role = button.dataset.role;
       socket.emit('SET_TEAM_ROLE', { team, role });
-      window.sounds.playClick();
+      try { if (window.sounds) window.sounds.playClick(); } catch (_) {}
     });
   });
 
@@ -1841,29 +1844,31 @@
   function attachCardEventListeners(cardEl, card) {
     if (!card.revealed) {
       cardEl.addEventListener('mouseenter', () => {
-        window.sounds.playHoverTick();
+        try {
+          if (window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+            if (window.sounds) window.sounds.playHoverTick();
+          }
+        } catch (_) {}
       });
     }
 
-    const frontFace = cardEl.querySelector('.card-face.front');
-    if (frontFace) {
-      frontFace.addEventListener('click', () => {
-        if (card.revealed || (currentGameState && currentGameState.winner)) return;
-        const s = currentGameState;
-        const y = s && s.you;
-        if (y && y.team === s.currentTurn && y.role === 'operative' && s.turnPhase === 'guess') {
-          socket.emit('SELECT_CARD', { cardId: card.id });
-          window.sounds.playSelectCard();
-        }
-      });
-    }
+    cardEl.addEventListener('click', (e) => {
+      if (e.target.closest('.btn-confirm-guess')) return;
+      if (card.revealed || (currentGameState && currentGameState.winner)) return;
+      const s = currentGameState;
+      const y = s && s.you;
+      if (y && y.team === s.currentTurn && y.role === 'operative' && s.turnPhase === 'guess') {
+        socket.emit('SELECT_CARD', { cardId: card.id });
+        try { if (window.sounds) window.sounds.playSelectCard(); } catch (_) {}
+      }
+    });
 
     const btnConfirm = cardEl.querySelector('.btn-confirm-guess');
     if (btnConfirm) {
       btnConfirm.addEventListener('click', (e) => {
         e.stopPropagation();
         cardEl.classList.add('revealing-press');
-        window.sounds.playCardSquish();
+        try { if (window.sounds) window.sounds.playCardSquish(); } catch (_) {}
         socket.emit('CONFIRM_CARD', { cardId: card.id });
       });
     }

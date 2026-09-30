@@ -3588,12 +3588,14 @@ body.screen-assassin-shock::after {
    (iPhone, iPad, Android, Small Screens & Touch Interaction)
    ======================================================== */
 
-/* Touch-action and tap highlight normalization across mobile touch surfaces */
-button, 
+/* Tap highlight and clickable cursor normalization across mobile touch surfaces */
+button,
+[role="button"],
 .codenames-card,
 .btn-primary-action,
 .btn-secondary-action,
 .btn-ghost-icon,
+.btn-card-small-action,
 .btn-count-quick,
 .quick-word-chip,
 .setting-bar-info,
@@ -3606,7 +3608,7 @@ button,
 .btn-start-game,
 .roster-player-chip,
 .score-pip {
-  touch-action: manipulation;
+  cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -4035,6 +4037,15 @@ button,
 
   .card-face.back .card-text {
     font-size: clamp(0.54rem, 2.4vw, 0.72rem) !important;
+  }
+
+  .btn-confirm-guess {
+    bottom: -6px;
+    right: 2px;
+    height: 30px;
+    padding: 0 10px;
+    font-size: 0.72rem;
+    z-index: 25;
   }
 
   /* Arena Footer Utilities on Mobile */
