@@ -970,10 +970,26 @@
   }
 
   if (btnCopyLobbyLink) {
-    btnCopyLobbyLink.addEventListener('click', () => {
+    btnCopyLobbyLink.addEventListener('click', async () => {
       if (!currentGameState || !currentGameState.roomId) return;
       window.sounds.playClick();
       const url = `${window.location.origin}${window.location.pathname}?room=${currentGameState.roomId}`;
+
+      // Native mobile share sheet (WhatsApp, Telegram, Discord, etc.)
+      if (navigator.share && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
+        try {
+          await navigator.share({
+            title: 'Codenames dos Iluminados',
+            text: `Bora jogar Codenames dos Iluminados! Código da mesa: ${currentGameState.roomId}`,
+            url: url
+          });
+          showToast('Convite compartilhado!', 'success');
+          return;
+        } catch (e) {
+          if (e.name === 'AbortError') return; // User cancelled
+        }
+      }
+
       copyTextToClipboard(url, 'Link de convite copiado para a área de transferência!');
       if (lblBtnCopyLinkText) {
         lblBtnCopyLinkText.textContent = 'Link Copiado!';
@@ -990,9 +1006,24 @@
     });
   }
 
-  btnCopyGameLink.addEventListener('click', () => {
-    if (!currentGameState) return;
+  btnCopyGameLink.addEventListener('click', async () => {
+    if (!currentGameState || !currentGameState.roomId) return;
     const url = `${window.location.origin}${window.location.pathname}?room=${currentGameState.roomId}`;
+
+    if (navigator.share && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
+      try {
+        await navigator.share({
+          title: 'Codenames dos Iluminados',
+          text: `Bora jogar Codenames dos Iluminados! Código da mesa: ${currentGameState.roomId}`,
+          url: url
+        });
+        showToast('Convite compartilhado!', 'success');
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+      }
+    }
+
     copyTextToClipboard(url, 'Link da sala copiado com sucesso!');
     btnCopyGameLink.textContent = 'Copiado!';
     setTimeout(() => btnCopyGameLink.textContent = 'Copiar Link', 2000);

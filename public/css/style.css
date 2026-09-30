@@ -3583,25 +3583,526 @@ body.screen-assassin-shock::after {
   }
 }
 
-/* Responsive adjustments */
-@media (max-width: 600px) {
+/* ========================================================
+   COMPREHENSIVE MOBILE & TABLET RESPONSIVE SYSTEM
+   (iPhone, iPad, Android, Small Screens & Touch Interaction)
+   ======================================================== */
+
+/* Touch-action and tap highlight normalization across mobile touch surfaces */
+button, 
+.codenames-card,
+.btn-primary-action,
+.btn-secondary-action,
+.btn-ghost-icon,
+.btn-count-quick,
+.quick-word-chip,
+.setting-bar-info,
+.lobby-setting-bar,
+.room-banner-code,
+.btn-copy-tag,
+.btn-invite-friends,
+.btn-copy-link,
+.btn-join-team,
+.btn-start-game,
+.roster-player-chip,
+.score-pip {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Tablet & Moderate Screens (<= 960px) */
+@media (max-width: 960px) {
+  .arena-columns-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .arena-center-board {
+    order: 1; /* 5x5 Board appears prominently at the top! */
+    width: 100%;
+  }
+
+  .arena-team-col.blue {
+    order: 2;
+    width: 100%;
+  }
+
+  .arena-team-col.red {
+    order: 3;
+    width: 100%;
+  }
+
+  /* Two-column layout for rosters on tablet below board */
+  .arena-team-col {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+  }
+
+  .arena-score-card {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Mobile Handsets (<= 640px) */
+@media (max-width: 640px) {
+  /* Header: Safe Area & Clean Compact Fit */
   .app-header {
-    padding: 0 16px;
-  }
-  .lobby-viewport {
-    padding: 16px;
-  }
-  .board-matrix {
+    height: auto;
+    min-height: 52px;
+    padding: max(8px, env(safe-area-inset-top)) 12px 8px;
     gap: 8px;
   }
-  .card-text {
+
+  .brand-seal {
+    width: 32px;
+    height: 32px;
+  }
+
+  .brand-seal svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .brand-title {
+    font-size: 0.94rem;
+    letter-spacing: 1.2px;
+  }
+
+  .brand-badge {
+    font-size: 0.54rem;
+    letter-spacing: 1.5px;
+  }
+
+  .header-room-pill {
+    padding: 3px 8px;
+    gap: 5px;
+  }
+
+  .header-room-lbl {
+    font-size: 0.56rem;
+  }
+
+  .header-room-val {
+    font-size: 0.82rem;
+    letter-spacing: 1.5px;
+  }
+
+  .btn-ghost-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  /* Landing Screen on Mobile */
+  .landing-container {
+    padding: 12px;
+    min-height: calc(100vh - 64px);
+    justify-content: center;
+  }
+
+  .landing-hero-block {
+    margin-bottom: 18px;
+  }
+
+  .landing-crest {
+    width: 52px;
+    height: 52px;
+    margin-bottom: 12px;
+  }
+
+  .landing-crest svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .landing-title {
+    font-size: 1.55rem;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  .landing-subtitle {
+    font-size: 0.86rem;
+    line-height: 1.4;
+    padding: 0 4px;
+  }
+
+  .entry-card {
+    padding: 20px 16px;
+    border-radius: var(--radius-lg);
+  }
+
+  /* CRITICAL: Input font-size at least 16px to prevent iOS Safari auto-zoom! */
+  .input-styled,
+  .input-styled.quick-word-input,
+  .spymaster-form input[type="text"],
+  .field-input,
+  input[type="text"],
+  input[type="number"] {
+    font-size: 16px !important;
+  }
+
+  .btn-primary-action,
+  .btn-secondary-action {
+    min-height: 48px;
+    font-size: 0.95rem;
+  }
+
+  /* Lobby View on Mobile */
+  .lobby-viewport {
+    padding: 10px 8px;
+    gap: 12px;
+  }
+
+  .lobby-room-banner {
+    padding: 12px 14px;
+    gap: 12px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .room-banner-left {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .room-badge-seal {
+    width: 38px;
+    height: 38px;
+  }
+
+  .room-badge-seal svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .room-banner-code {
+    font-size: 1.42rem;
+    letter-spacing: 3px;
+    padding: 2px 6px;
+  }
+
+  .btn-copy-tag {
+    padding: 4px 8px;
+    font-size: 0.7rem;
+  }
+
+  .room-banner-right {
+    width: 100%;
+  }
+
+  .btn-invite-friends {
+    width: 100%;
+    justify-content: center;
+    padding: 11px 16px;
+    font-size: 0.84rem;
+  }
+
+  .spectators-row {
+    padding: 8px 12px;
+    gap: 10px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .spectators-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .spectators-header {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .spectators-avatars {
+    flex-wrap: nowrap;
+  }
+
+  .team-column {
+    gap: 10px;
+  }
+
+  .team-role-card {
+    padding: 12px;
+  }
+
+  .btn-join-team {
+    min-height: 42px;
+    font-size: 0.88rem;
+  }
+
+  .lobby-center-card {
+    padding: 14px 12px;
+  }
+
+  .lobby-admin-actions {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .btn-lobby-action {
+    font-size: 0.74rem;
+    padding: 8px 4px;
+  }
+
+  .quick-words-input-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .quick-words-input-row input {
+    width: 100%;
+  }
+
+  .quick-words-input-row button {
+    width: 100%;
+    height: 42px;
+  }
+
+  /* Sticky Lobby Bottom Launch Bar with Safe Area Inset */
+  .lobby-footer-bar {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 8px -8px -10px -8px;
+    padding: 10px 14px max(12px, env(safe-area-inset-bottom));
+    background: rgba(14, 16, 22, 0.94);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid rgba(212, 175, 55, 0.18);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+    z-index: 40;
+  }
+
+  .btn-start-game {
+    height: 48px;
+    font-size: 1rem;
+    max-width: 100%;
+  }
+
+  /* Active Game Board View on Mobile */
+  .game-viewport {
+    padding: 8px 6px 24px;
+    gap: 10px;
+  }
+
+  .arena-top-banner {
+    padding: 10px 10px;
+    gap: 8px;
+  }
+
+  .arena-instruction-bar {
+    gap: 8px;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .arena-status-headline {
+    font-size: 0.86rem;
+    line-height: 1.25;
+  }
+
+  .hud-turn-badge {
+    padding: 4px 10px;
     font-size: 0.72rem;
   }
-  .clue-splash-card {
-    padding: 24px 20px;
+
+  .active-clue-chip {
+    width: 100%;
+    justify-content: center;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    flex-wrap: wrap;
+    gap: 6px;
   }
+
+  /* Spymaster Controls on Mobile */
+  .arena-top-controls {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .spymaster-form {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 50px 36px 36px;
+    gap: 6px;
+  }
+
+  .spymaster-form input[type="text"] {
+    width: 100%;
+    padding: 8px 8px;
+  }
+
+  .spymaster-form .btn-primary-action {
+    grid-column: 1 / -1;
+    min-height: 44px;
+    margin-top: 2px;
+  }
+
+  #operativePassArea {
+    width: 100%;
+  }
+
+  #btnPassTurn {
+    width: 100%;
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+
+  .spymaster-safety-toggle {
+    width: 100%;
+    justify-content: center;
+    padding: 8px 12px;
+  }
+
+  /* --------------------------------------------------------
+     THE 5x5 CARD MATRIX ON MOBILE (Flawless Geometry & Readability)
+     -------------------------------------------------------- */
+  .arena-center-board {
+    padding: 2px 0;
+  }
+
+  .board-matrix {
+    gap: 5px;
+    width: 100%;
+  }
+
+  .codenames-card {
+    min-height: unset !important;
+    aspect-ratio: 1.22 !important;
+    border-radius: 6px !important;
+  }
+
+  .card-face {
+    padding: 3px !important;
+    border-radius: 6px !important;
+  }
+
+  .card-flipper {
+    border-radius: 6px !important;
+  }
+
+  /* In mobile portrait, omit the inverted top word to give 100% of card space to the word plate */
+  .card-sand-top {
+    display: none !important;
+  }
+
+  .card-word-plate {
+    flex: 1;
+    width: 100%;
+    min-height: unset !important;
+    padding: 2px 3px !important;
+    border-radius: 4px !important;
+  }
+
+  .card-text {
+    font-size: clamp(0.58rem, 2.7vw, 0.78rem) !important;
+    line-height: 1.12 !important;
+    letter-spacing: -0.02em !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8) !important;
+    word-break: break-word !important;
+    hyphens: auto !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Revealed Back Card on Mobile */
+  .card-face.back {
+    padding: 4px !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 2px;
+  }
+
+  .card-back-badge {
+    font-size: 0.52rem !important;
+    padding: 1px 4px !important;
+    letter-spacing: 0.6px !important;
+  }
+
+  .card-word-plate.back-plate {
+    padding: 2px !important;
+    min-height: unset !important;
+  }
+
+  .card-face.back .card-text {
+    font-size: clamp(0.54rem, 2.4vw, 0.72rem) !important;
+  }
+
+  /* Arena Footer Utilities on Mobile */
+  .arena-footer-bar {
+    padding: 8px 10px;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .room-chip {
+    font-size: 0.76rem;
+  }
+
+  .btn-copy-link {
+    padding: 4px 8px;
+    font-size: 0.7rem;
+  }
+
+  /* Modals on Mobile */
+  .modal-backdrop {
+    padding: 12px;
+  }
+
+  .modal-sheet {
+    padding: 20px 14px;
+    border-radius: 16px;
+    max-height: 86vh;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-header h3 {
+    font-size: 1.12rem;
+  }
+
+  /* Big Clue Splash Overlay on Mobile */
+  .clue-splash-card {
+    padding: 20px 16px;
+    width: 90vw;
+    max-width: 360px;
+  }
+
   .clue-splash-word {
-    font-size: 2rem;
+    font-size: 1.85rem;
+  }
+
+  .clue-splash-count-pill {
+    font-size: 0.8rem;
+    padding: 5px 12px;
+  }
+}
+
+/* Extra Compact Screens (<= 360px like iPhone SE 1st gen, Galaxy Fold outer screen) */
+@media (max-width: 360px) {
+  .board-matrix {
+    gap: 3.5px;
+  }
+
+  .codenames-card {
+    aspect-ratio: 1.18 !important;
+  }
+
+  .card-text {
+    font-size: clamp(0.52rem, 2.5vw, 0.68rem) !important;
+  }
+
+  .brand-title {
+    font-size: 0.85rem;
   }
 }
 
