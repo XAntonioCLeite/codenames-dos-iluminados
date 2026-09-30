@@ -1,6 +1,20 @@
 // CodeNames dos Iluminados - Client Engine
 (function () {
-  const socket = io();
+  // Determine backend and API endpoints:
+  // If frontend is hosted on Vercel, connect directly to persistent Render Node.js WebSocket backend!
+  const isVercel = window.location.hostname.includes('vercel.app');
+  const BACKEND_URL = isVercel
+    ? 'https://codenames-dos-iluminados.onrender.com'
+    : (window.location.protocol === 'file:' ? 'http://localhost:3333' : '');
+  const API_BASE = isVercel ? 'https://codenames-dos-iluminados.onrender.com' : '';
+
+  const socket = (typeof io !== 'undefined')
+    ? io(BACKEND_URL, {
+        transports: ['websocket', 'polling'],
+        reconnectionAttempts: 8,
+        timeout: 12000
+      })
+    : null;
 
   // State
   let availableBaseDecks = {};
@@ -351,7 +365,7 @@
 
   async function fetchAllDecks() {
     try {
-      const res = await fetch('/api/decks');
+      const res = await fetch(`${API_BASE}/api/decks`);
       availableBaseDecks = await res.json();
       renderPacksChecklist();
       renderCustomDecksList();
@@ -423,10 +437,43 @@
     const nickname = inputNickname.value.trim() || 'Agente Iluminado';
     window.sounds.playClick();
 
-    if (!socket.connected) {
-      showSystemAlert('Conectando ao servidor em tempo real... O Vercel opera de forma serverless e não mantém conexões WebSockets persistentes de jogos. Para jogar agora, abra via localhost:3333 ou use um servidor permanente como Render/Railway.', 'Aguardando Servidor');
+    if (!socket) {
+      showSystemAlert('Não foi possível inicializar a conexão com o servidor. Recarregue a página.', 'Erro de Conexão');
       return;
     }
+
+    if (!socket.connected) {
+      btnCreateRoom.disabled = true;
+      const originalText = btnCreateRoom.textContent;
+      btnCreateRoom.textContent = 'Conectando ao servidor...';
+
+      const timeoutId = setTimeout(() => {
+        btnCreateRoom.disabled = false;
+        btnCreateRoom.textContent = originalText;
+        showSystemAlert('O servidor em tempo real está inicializando (serviços gratuitos podem levar alguns instantes para acordar). Aguarde um instante e tente novamente.', 'Conectando...');
+      }, 9000);
+
+      socket.once('connect', () => {
+        clearTimeout(timeoutId);
+        btnCreateRoom.disabled = false;
+        btnCreateRoom.textContent = originalText;
+        socket.emit('CREATE_ROOM', {
+          nickname,
+          selectedDeckIds: ['iluminados'],
+          customDecks: customDecks,
+          timerSeconds: 90
+        });
+      });
+      return;
+    }
+
+    btnCreateRoom.disabled = true;
+    const originalText = btnCreateRoom.textContent;
+    btnCreateRoom.textContent = 'Criando Mesa...';
+    setTimeout(() => {
+      btnCreateRoom.disabled = false;
+      btnCreateRoom.textContent = originalText;
+    }, 4000);
 
     socket.emit('CREATE_ROOM', {
       nickname,
@@ -447,10 +494,38 @@
 
     window.sounds.playClick();
 
-    if (!socket.connected) {
-      showSystemAlert('Aguardando conexão com o servidor multiplayer em tempo real...', 'Servidor Desconectado');
+    if (!socket) {
+      showSystemAlert('Não foi possível conectar ao servidor.', 'Erro de Conexão');
       return;
     }
+
+    if (!socket.connected) {
+      btnJoinRoom.disabled = true;
+      const originalText = btnJoinRoom.textContent;
+      btnJoinRoom.textContent = 'Conectando...';
+
+      const timeoutId = setTimeout(() => {
+        btnJoinRoom.disabled = false;
+        btnJoinRoom.textContent = originalText;
+        showSystemAlert('Aguardando conexão com o servidor multiplayer em tempo real...', 'Servidor Desconectado');
+      }, 9000);
+
+      socket.once('connect', () => {
+        clearTimeout(timeoutId);
+        btnJoinRoom.disabled = false;
+        btnJoinRoom.textContent = originalText;
+        socket.emit('JOIN_ROOM', { roomId: code, nickname });
+      });
+      return;
+    }
+
+    btnJoinRoom.disabled = true;
+    const originalText = btnJoinRoom.textContent;
+    btnJoinRoom.textContent = 'Entrando...';
+    setTimeout(() => {
+      btnJoinRoom.disabled = false;
+      btnJoinRoom.textContent = originalText;
+    }, 4000);
 
     socket.emit('JOIN_ROOM', { roomId: code, nickname });
   });
@@ -730,7 +805,7 @@
         );
         if (confirmed) {
           try {
-            await fetch(`/api/custom-decks/${deck.id}`, { method: 'DELETE' });
+            await fetch(`${API_BASE}/api/custom-decks/${deck.id}`, { method: 'DELETE' });
             customDecks = customDecks.filter(d => d.id !== deck.id);
             saveCustomDecks();
             await fetchAllDecks();
@@ -760,7 +835,7 @@
     }
 
     try {
-      const res = await fetch('/api/custom-decks', {
+      const res = await fetch(`${API_BASE}/api/custom-decks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: title, words, author })
