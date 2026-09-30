@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Os Iluminados | Codenames Secreto</title>
+  <meta name="description" content="Plataforma de dedução social e palavras secretas da Tropa dos Iluminados.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><polygon points='50,15 90,85 10,85' fill='none' stroke='%23d4af37' stroke-width='8'/><circle cx='50' cy='55' r='14' fill='%23d4af37'/></svg>">
+</head>
+<body>
+
+  <!-- Background Ambient Atmosphere Canvas (Partículas sutis quase imperceptíveis) -->
+  <canvas id="ambientAtmosphereCanvas" class="ambient-canvas"></canvas>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand" id="brandBtn">
+      <div class="brand-seal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 22 20 2 20"></polygon>
+          <circle cx="12" cy="13" r="3"></circle>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-title">CODENAMES</div>
+        <div class="brand-badge">ILUMINADOS</div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-ghost-icon" id="btnSoundToggle" title="Alternar Som" aria-label="Som">
+        <svg id="iconSoundOn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+        </svg>
+        <svg id="iconSoundOff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <line x1="23" y1="9" x2="17" y2="15"></line>
+          <line x1="17" y1="9" x2="23" y2="15"></line>
+        </svg>
+      </button>
+      <button class="btn-ghost-icon" id="btnHeaderDecks" title="Gerenciador de Baralhos" aria-label="Baralhos">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================================
+       1. LANDING VIEW (Enter name & create or enter code)
+       ======================================================== -->
+  <main class="view active" id="viewLanding">
+    <div class="landing-container">
+      <div class="landing-hero-block">
+        <div class="landing-crest">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 22 20 2 20"></polygon>
+            <circle cx="12" cy="13" r="3"></circle>
+          </svg>
+        </div>
+        <h1 class="landing-title">Codenames dos Iluminados</h1>
+        <p class="landing-subtitle">
+          Dedução secreta em equipes com as palavras, memórias e piadas internas da galera.
+        </p>
+      </div>
+
+      <div class="entry-card">
+        <div class="form-field">
+          <label class="field-label" for="inputNickname">Seu Nome ou Apelido</label>
+          <input type="text" id="inputNickname" class="input-styled" placeholder="Ex: Brunes, Cadu, Pedro, Vicky..." maxlength="25" autocomplete="off">
+        </div>
+
+        <button type="button" class="btn-primary-action" id="btnCreateRoom">
+          Criar Nova Mesa
+        </button>
+
+        <div class="divider-row">
+          <span>ou entre com código</span>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label" for="inputRoomCode">Código da Sala</label>
+          <input type="text" id="inputRoomCode" class="input-styled" placeholder="Ex: ABCDE" style="text-transform: uppercase; letter-spacing: 2px;" maxlength="8">
+        </div>
+
+        <button type="button" class="btn-secondary-action" id="btnJoinRoom">
+          Entrar na Sala
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ========================================================
+       2. LOBBY VIEW (Matches Codenames.game screenshot)
+       ======================================================== -->
+  <main class="view" id="viewLobby">
+    <div class="lobby-viewport">
+      
+      <!-- Top: Spectators Row -->
+      <section class="spectators-row">
+        <div class="spectators-header" id="btnJoinSpectators" role="button" tabindex="0">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          <span>Espectadores</span>
+        </div>
+        <div class="spectators-avatars" id="lobbySpectatorsContainer">
+          <!-- Spectator tokens -->
+        </div>
+      </section>
+
+      <!-- 3-Column Lobby Body -->
+      <section class="lobby-main-grid">
+        
+        <!-- Left: Blue Team -->
+        <div class="team-column blue">
+          <div class="team-header-pill">Equipe Azul</div>
+          
+          <!-- Blue Operatives -->
+          <div class="team-role-card">
+            <div class="team-role-card-header">
+              <span>Agentes de Campo</span>
+              <button type="button" class="btn-card-small-action" data-team="blue" data-role="operative" data-action="add-bot" title="Adicionar Agente Bot">
+                + Bot
+              </button>
+            </div>
+            <div class="team-player-roster" id="lobbyBlueOperatives"></div>
+            <button type="button" class="btn-join-team" data-team="blue" data-role="operative">
+              Entrar como Agente
+            </button>
+          </div>
+
+          <!-- Blue Spymaster -->
+          <div class="team-role-card">
+            <div class="team-role-card-header">
+              <span>Mestre-Espião</span>
+              <button type="button" class="btn-card-small-action" data-team="blue" data-role="spymaster" data-action="add-bot" title="Adicionar Mestre Bot">
+                + Bot
+              </button>
+            </div>
+            <div class="team-player-roster" id="lobbyBlueSpymaster"></div>
+            <button type="button" class="btn-join-team" data-team="blue" data-role="spymaster">
+              Entrar como Mestre
+            </button>
+          </div>
+        </div>
+
+        <!-- Center: Game Settings -->
+        <div class="lobby-center-card">
+          <div class="center-card-header">
+            <span class="center-card-title">Mesa de Jogo</span>
+            <span class="game-format-tag">5x5 • 25 Cartas</span>
+          </div>
+
+          <!-- Word Packs Bar -->
+          <div class="lobby-setting-bar" id="btnOpenPacksModal" role="button" tabindex="0">
+            <div class="setting-bar-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+              </svg>
+            </div>
+            <div class="setting-bar-info">
+              <div class="setting-bar-title">Baralhos em Jogo</div>
+              <div class="setting-bar-desc" id="lblLobbyActivePacks">Iluminados</div>
+            </div>
+          </div>
+
+          <!-- Timer Bar -->
+          <div class="lobby-setting-bar" id="btnCycleTimer" role="button" tabindex="0">
+            <div class="setting-bar-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <div class="setting-bar-info">
+              <div class="setting-bar-title">Tempo por Turno</div>
+              <div class="setting-bar-desc" id="lblLobbyTimerDesc">90 Segundos</div>
+            </div>
+          </div>
+
+          <!-- Quick Match Words (Palavras Rápidas da Partida) -->
+          <div class="lobby-quick-words-card">
+            <div class="quick-words-header">
+              <div class="quick-words-title-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 5v14M5 12h14"></path>
+                </svg>
+                <span>Palavras Rápidas da Rodada</span>
+              </div>
+              <span class="quick-words-badge" id="lblQuickWordsCount">0 adicionadas</span>
+            </div>
+            <p class="quick-words-desc">
+              Quer jogar com algumas palavras específicas agora sem criar um baralho? Digite abaixo:
+            </p>
+            <div class="quick-words-input-row">
+              <input type="text" id="inputQuickWord" class="input-styled quick-word-input" placeholder="Ex: Dona Monalisa, Churrasco..." maxlength="35" autocomplete="off">
+              <button type="button" class="btn-action-gold" id="btnAddQuickWord">
+                + Adicionar
+              </button>
+            </div>
+            <div class="quick-words-chips-container" id="quickWordsChipsList">
+              <!-- Rendered as tags: [Palavra ×] -->
+            </div>
+          </div>
+
+          <!-- Admin Tools -->
+          <div class="lobby-admin-actions" id="adminControlsArea">
+            <button type="button" class="btn-lobby-action highlight" id="btnFillBots" title="Preencher vagas vazias para jogar na hora">Preencher com Bots</button>
+            <button type="button" class="btn-lobby-action" id="btnResetTeams">Redefinir Equipes</button>
+            <button type="button" class="btn-lobby-action" id="btnRandomizeTeams">Embaralhar Equipes</button>
+            <button type="button" class="btn-lobby-action" id="btnToggleTeamLock">Permitir Troca de Equipes</button>
+          </div>
+        </div>
+
+        <!-- Right: Red Team -->
+        <div class="team-column red">
+          <div class="team-header-pill">Equipe Vermelha</div>
+          
+          <!-- Red Operatives -->
+          <div class="team-role-card">
+            <div class="team-role-card-header">
+              <span>Agentes de Campo</span>
+              <button type="button" class="btn-card-small-action" data-team="red" data-role="operative" data-action="add-bot" title="Adicionar Agente Bot">
+                + Bot
+              </button>
+            </div>
+            <div class="team-player-roster" id="lobbyRedOperatives"></div>
+            <button type="button" class="btn-join-team" data-team="red" data-role="operative">
+              Entrar como Agente
+            </button>
+          </div>
+
+          <!-- Red Spymaster -->
+          <div class="team-role-card">
+            <div class="team-role-card-header">
+              <span>Mestre-Espião</span>
+              <button type="button" class="btn-card-small-action" data-team="red" data-role="spymaster" data-action="add-bot" title="Adicionar Mestre Bot">
+                + Bot
+              </button>
+            </div>
+            <div class="team-player-roster" id="lobbyRedSpymaster"></div>
+            <button type="button" class="btn-join-team" data-team="red" data-role="spymaster">
+              Entrar como Mestre
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Bottom Start Button & Room Code -->
+      <footer class="lobby-footer-bar">
+        <button type="button" class="btn-start-game" id="btnStartGame">
+          Iniciar Partida
+        </button>
+      </footer>
+
+    </div>
+  </main>
+
+  <!-- ========================================================
+       3. ACTIVE GAME BOARD VIEW (Layout aligned with Codenames arena)
+       ======================================================== -->
+  <main class="view" id="viewGame">
+    <div class="game-viewport">
+      
+      <!-- Top Arena Header Banner -->
+      <div class="arena-top-banner">
+        <div class="arena-instruction-bar">
+          <div class="hud-turn-badge red" id="lblActiveTeamTag">
+            <span class="hud-turn-pulse"></span>
+            <span id="lblActiveTeamText">TIME VERMELHO</span>
+          </div>
+
+          <!-- Central Timer in Top HUD with SVG Progress Ring -->
+          <div class="hud-turn-timer-chip" id="hudTurnTimerChip" style="display: none;">
+            <svg class="timer-ring-icon" viewBox="0 0 24 24" fill="none">
+              <circle class="timer-ring-bg" cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.15)" stroke-width="2.5"></circle>
+              <circle class="timer-ring-fg" id="svgTimerRingFg" cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.5" stroke-dasharray="56.54" stroke-dashoffset="0" stroke-linecap="round"></circle>
+            </svg>
+            <span id="lblHudTimerSeconds">90s</span>
+          </div>
+
+          <h2 class="arena-status-headline" id="lblActiveTurnMessage">Mestre formulando a dica...</h2>
+
+          <!-- Clue Display for Operatives -->
+          <div class="active-clue-chip" id="activeClueChip" style="display: none;">
+            <span class="clue-seal-mini">△</span>
+            <span class="clue-label">DICA:</span>
+            <span class="clue-gem">✦</span>
+            <span class="clue-text" id="lblDisplayClueWord">ROMA</span>
+            <span class="clue-gem">✦</span>
+            <span class="clue-count">(<span id="lblDisplayClueCount">2</span>)</span>
+            <span class="clue-sub">Restam: <strong id="lblDisplayGuessesLeft">3</strong></span>
+          </div>
+        </div>
+
+        <div class="arena-top-controls">
+          <!-- Spymaster Clue Form -->
+          <div class="spymaster-form" id="spymasterInputArea" style="display: none;">
+            <input type="text" id="txtSpymasterWord" placeholder="Palavra-Dica" maxlength="30" autocomplete="off">
+            <input type="number" id="numSpymasterCount" class="spymaster-count-input" value="1" min="0" max="25">
+            <button type="button" class="btn-count-quick" id="btnCountZero" title="Nenhuma palavra">0</button>
+            <button type="button" class="btn-count-quick" id="btnCountInfinity" title="Palpites Ilimitados">∞</button>
+            <button type="button" class="btn-primary-action" id="btnSendClue" style="padding: 7px 16px; font-size: 0.84rem;">Dar Dica</button>
+          </div>
+
+          <!-- Operative Pass Turn -->
+          <div id="operativePassArea" style="display: none;">
+            <button type="button" class="btn-secondary-action" id="btnPassTurn" style="padding: 7px 16px; font-size: 0.84rem;">Passar a Vez</button>
+          </div>
+
+          <!-- Spymaster Keycard Mode Checkbox -->
+          <div class="spymaster-safety-toggle" id="spymasterToggleWrap">
+            <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
+              <input type="checkbox" id="chkSpymasterKeycard" style="accent-color: var(--gold-primary);">
+              <span>Gabarito Secreto</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Game Arena: 3-Column Arena (Blue Side | 5x5 Matrix | Red Side) -->
+      <div class="arena-columns-layout">
+        
+        <!-- Left Column: Blue Team -->
+        <aside class="arena-team-col blue">
+          <!-- Blue Operatives Card -->
+          <div class="arena-team-card blue-card">
+            <div class="arena-card-header blue-hdr">
+              <span>AGENTES</span>
+              <span class="arena-role-count" id="countBlueOperatives">0</span>
+            </div>
+            <div class="arena-player-list" id="gameBlueOperatives"></div>
+          </div>
+
+          <!-- Blue Score Hero Card with Explicit Agents Mini-Cards Rack -->
+          <div class="arena-score-card blue-score" id="badgeScoreBlue">
+            <div class="score-card-meta">
+              <span class="score-team-title">TIME AZUL</span>
+              <span class="score-remaining-label" id="lblRemainingLabelBlue">8 RESTANTES</span>
+            </div>
+            <div class="score-number-wrap">
+              <span class="score-card-number" id="lblGameScoreBlue">8</span>
+            </div>
+            <div class="score-pips-row" id="pipsTrackBlue" title="Barras luminosas de agentes restantes"></div>
+          </div>
+
+          <!-- Blue Spymaster Card -->
+          <div class="arena-team-card blue-card">
+            <div class="arena-card-header blue-hdr">
+              <span>MESTRES-ESPIÕES</span>
+            </div>
+            <div class="arena-player-list" id="gameBlueSpymaster"></div>
+          </div>
+        </aside>
+
+        <!-- Center Column: 5x5 Card Matrix with Ambient Aura & Watermark -->
+        <main class="arena-center-board">
+          <div class="arena-board-ambient-aura" id="arenaBoardAmbientAura"></div>
+          <div class="board-watermark-seal">
+            <svg viewBox="0 0 100 100" fill="none" stroke="currentColor">
+              <polygon points="50,14 92,86 8,86" stroke-width="2.5"/>
+              <circle cx="50" cy="54" r="16" stroke-width="2"/>
+              <circle cx="50" cy="54" r="6" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="board-matrix" id="boardCardsGrid">
+            <!-- 25 cards dynamically rendered -->
+          </div>
+        </main>
+
+        <!-- Right Column: Red Team & Collapsible Register -->
+        <aside class="arena-team-col red">
+          <!-- Red Operatives Card -->
+          <div class="arena-team-card red-card">
+            <div class="arena-card-header red-hdr">
+              <span>AGENTES</span>
+              <span class="arena-role-count" id="countRedOperatives">0</span>
+            </div>
+            <div class="arena-player-list" id="gameRedOperatives"></div>
+          </div>
+
+          <!-- Red Score Hero Card with Explicit Agents Mini-Cards Rack -->
+          <div class="arena-score-card red-score" id="badgeScoreRed">
+            <div class="score-card-meta">
+              <span class="score-team-title">TIME VERMELHO</span>
+              <span class="score-remaining-label" id="lblRemainingLabelRed">9 RESTANTES</span>
+            </div>
+            <div class="score-number-wrap">
+              <span class="score-card-number" id="lblGameScoreRed">9</span>
+            </div>
+            <div class="score-pips-row" id="pipsTrackRed" title="Barras luminosas de agentes restantes"></div>
+          </div>
+
+          <!-- Red Spymaster Card -->
+          <div class="arena-team-card red-card">
+            <div class="arena-card-header red-hdr">
+              <span>MESTRES-ESPIÕES</span>
+            </div>
+            <div class="arena-player-list" id="gameRedSpymaster"></div>
+          </div>
+
+          <!-- Collapsible Register Accordion (Directly matching screenshot) -->
+          <div class="arena-register-panel" id="arenaRegisterPanel">
+            <button type="button" class="btn-toggle-register" id="btnToggleRegister">
+              <span>REGISTRO</span>
+              <svg id="iconRegisterChevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            <div class="arena-register-drawer" id="arenaRegisterDrawer">
+              <div class="sidebar-tab-bar">
+                <button type="button" class="sidebar-tab-btn active" id="tabBtnRegister">Dicas</button>
+                <button type="button" class="sidebar-tab-btn" id="tabBtnEvents">Log</button>
+              </div>
+              <div class="sidebar-tab-content" id="tabContentRegister">
+                <div class="rounds-timeline" id="roundsTimelineList"></div>
+              </div>
+              <div class="sidebar-tab-content" id="tabContentEvents" style="display: none;">
+                <div id="eventsLogList" style="display: flex; flex-direction: column; gap: 6px; font-size: 0.78rem;"></div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+      </div>
+
+      <!-- Bottom Arena Utilities Footer -->
+      <footer class="arena-footer-bar">
+        <div class="room-chip">
+          <span style="color: var(--text-muted); font-weight: 700;">SALA:</span>
+          <span class="room-chip-code" id="lblGameRoomCode">ILUMI</span>
+          <button type="button" class="btn-copy-link" id="btnCopyGameLink">Copiar Link</button>
+        </div>
+
+        <div class="timer-pill" id="gameTimerPill" style="display: none;">
+          <svg style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span id="lblGameTimerSeconds">90s</span>
+        </div>
+
+        <button type="button" class="btn-secondary-action" id="btnReturnToLobby" style="padding: 6px 14px; font-size: 0.78rem;">
+          Voltar ao Lobby
+        </button>
+      </footer>
+
+    </div>
+  </main>
+
+  <!-- ========================================================
+       MODAL: PACOTES DE PALAVRAS (Deck Selector)
+       ======================================================== -->
+  <div class="modal-backdrop" id="modalPacks">
+    <div class="modal-sheet">
+      <div class="modal-title-row">
+        <h3 class="modal-heading">Pacotes de Palavras</h3>
+        <button type="button" class="btn-close-sheet" id="btnClosePacksModal">&times;</button>
+      </div>
+
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
+        Selecione os baralhos que serão misturados para gerar as 25 cartas da partida:
+      </p>
+
+      <div id="packsChecklistContainer" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
+        <!-- Filled by JS -->
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 0.85rem;">
+        <span style="color: var(--text-muted);">Total de palavras disponíveis:</span>
+        <strong id="lblModalTotalWords" style="color: var(--gold-primary);">0</strong>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button type="button" class="btn-action-gold" id="btnApplyPacks" style="flex: 1;">
+          Aplicar Configuração
+        </button>
+        <button type="button" class="btn-action-subtle" id="btnOpenCustomManagerFromPacks">
+          + Criar Novo Baralho
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODAL: CRIADOR DE BARALHOS CUSTOMIZADOS (Saved to SQLite!)
+       ======================================================== -->
+  <div class="modal-backdrop" id="modalCustomDecks">
+    <div class="modal-sheet">
+      <div class="modal-title-row">
+        <h3 class="modal-heading">Gerenciador de Baralhos (Permanentes)</h3>
+        <button type="button" class="btn-close-sheet" id="btnCloseCustomDecksModal">&times;</button>
+      </div>
+
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
+        Baralhos criados aqui são salvos diretamente no banco de dados e nunca se perdem. Sem limite de tamanho de caracteres!
+      </p>
+
+      <div id="customDecksItemsList" style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px;"></div>
+
+      <div style="border-top: 1px solid var(--border-subtle); padding-top: 16px;">
+        <div class="form-field" style="margin-bottom: 12px;">
+          <label class="field-label" for="txtDeckTitle">Nome do Baralho</label>
+          <input type="text" id="txtDeckTitle" class="input-styled" placeholder="Ex: Tropa do Discord">
+        </div>
+
+        <div class="form-field" style="margin-bottom: 16px;">
+          <label class="field-label" for="txtDeckWordsRaw">Palavras ou Frases (uma por linha ou separadas por vírgula)</label>
+          <textarea id="txtDeckWordsRaw" class="input-styled" style="height: 120px; resize: vertical;" placeholder="Ex:&#10;Miojo com salsicha&#10;Alvin e os esquilos&#10;Dança da motinha"></textarea>
+          <span style="font-size: 0.75rem; color: var(--text-dim);">Palavras detectadas: <strong id="lblDetectedWordCount">0</strong></span>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button type="button" class="btn-action-gold" id="btnSaveCustomDeck" style="flex: 2;">
+            Salvar no Banco
+          </button>
+          <button type="button" class="btn-action-subtle" id="btnExportCustomJSON" style="flex: 1;">
+            Exportar
+          </button>
+          <button type="button" class="btn-action-subtle" id="btnImportCustomJSON" style="flex: 1;">
+            Importar
+          </button>
+          <input type="file" id="fileDeckImport" accept=".json" style="display: none;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODAL: FIM DE JOGO / VITÓRIA
+       ======================================================== -->
+  <div class="modal-backdrop" id="modalVictory">
+    <div class="modal-sheet">
+      <div class="victory-seal-wrap">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor">
+          <polygon points="50,14 92,86 8,86" stroke-width="5" />
+          <circle cx="50" cy="54" r="16" stroke-width="4" />
+          <circle cx="50" cy="54" r="6" fill="currentColor" />
+        </svg>
+      </div>
+      <h2 class="victory-title" id="lblVictoryHeading">VITÓRIA!</h2>
+      <p class="victory-details" id="lblVictoryDetails">O time encontrou todos os agentes!</p>
+
+      <!-- Match Statistics / Summary Cards -->
+      <div class="victory-stats-grid" id="victoryStatsGrid">
+        <div class="victory-stat-item">
+          <span class="stat-item-label">Rodadas</span>
+          <span class="stat-item-value" id="lblVictoryStatsRounds">1</span>
+        </div>
+        <div class="victory-stat-item">
+          <span class="stat-item-label">Cartas Azuis</span>
+          <span class="stat-item-value" id="lblVictoryStatsBlue">0/8</span>
+        </div>
+        <div class="victory-stat-item">
+          <span class="stat-item-label">Cartas Vermelhas</span>
+          <span class="stat-item-value" id="lblVictoryStatsRed">0/9</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; max-width: 320px; margin: 18px auto 0 auto;">
+        <button type="button" class="btn-primary-action" id="btnVictoryRematch">
+          Jogar Novamente
+        </button>
+        <button type="button" class="btn-secondary-action" id="btnVictoryLobby">
+          Voltar ao Lobby
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MATCH STARTING RITUAL CURTAIN (△ ○ ILUMINADOS)
+       ======================================================== -->
+  <div class="match-intro-curtain" id="matchIntroCurtain">
+    <div class="intro-curtain-seal">
+      <svg viewBox="0 0 100 100" fill="none" stroke="currentColor">
+        <polygon points="50,14 92,86 8,86" stroke-width="3.5" />
+        <circle cx="50" cy="54" r="16" stroke-width="2.5" />
+        <circle cx="50" cy="54" r="6" fill="currentColor" />
+      </svg>
+    </div>
+    <div class="intro-curtain-title">CODENAMES DOS ILUMINADOS</div>
+    <div class="intro-curtain-sub">Revelando o que está oculto...</div>
+  </div>
+
+  <!-- ========================================================
+       BIG CLUE SPLASH OVERLAY (Dica Grande na Tela)
+       ======================================================== -->
+  <div class="clue-splash-overlay" id="clueSplashOverlay">
+    <div class="clue-splash-watermark">
+      <svg viewBox="0 0 100 100" fill="none" stroke="currentColor">
+        <polygon points="50,14 92,86 8,86" stroke-width="3"/>
+        <circle cx="50" cy="54" r="16" stroke-width="2.5"/>
+        <circle cx="50" cy="54" r="6" fill="currentColor"/>
+      </svg>
+    </div>
+    <div class="clue-splash-card" id="clueSplashCard">
+      <div class="clue-splash-team-badge" id="clueSplashTeamBadge">DICA DO TIME VERMELHO</div>
+      <div class="clue-splash-word-wrap">
+        <svg class="clue-splash-gem" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 22 12 12 22 2 12"/></svg>
+        <span class="clue-splash-word" id="clueSplashWord">PALAVRA</span>
+        <svg class="clue-splash-gem" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 22 12 12 22 2 12"/></svg>
+      </div>
+      <div class="clue-splash-count-pill" id="clueSplashCount">2 PALAVRAS</div>
+      <div class="clue-splash-dismiss-hint">Clique para fechar</div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODAL: POP-UP NATIVO DO SISTEMA (Substituto de Alert & Confirm)
+       ======================================================== -->
+  <div class="modal-backdrop" id="modalSystemDialog">
+    <div class="modal-sheet system-dialog-sheet">
+      <div class="system-dialog-icon" id="systemDialogIcon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <h3 class="system-dialog-title" id="systemDialogTitle">Aviso</h3>
+      <p class="system-dialog-message" id="systemDialogMessage">Mensagem do sistema.</p>
+      <div class="system-dialog-actions" id="systemDialogActions">
+        <button type="button" class="btn-action-subtle" id="btnSystemDialogCancel" style="display: none;">Cancelar</button>
+        <button type="button" class="btn-action-gold" id="btnSystemDialogConfirm">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

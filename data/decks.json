@@ -1,0 +1,95 @@
+{
+  "iluminados": {
+    "id": "iluminados",
+    "name": "Iluminados",
+    "description": "Piadas internas, apelidos e lendas da Tropa dos Iluminados.",
+    "words": [
+      "Duende", "Paulo", "Hericka", "Leite", "Ordem", "Tropa", "Shrek", "Sol", "Vaporeon",
+      "São Matheus", "Urubu", "Afronésia", "Judas", "Cabo Frio", "Pardo", "Bardo", "CEO",
+      "Honda", "Parça", "Joaverson", "Zekky", "Alvin e os Esquilos", "Rolê", "Oudrikandralarrai",
+      "I.A", "Portaria", "Rato", "Loira", "Gay", "Miopia", "Pobreza", "Anticristo", "Tição",
+      "Pneu", "Canhão", "Kowalski", "Terceiramente", "Relatório", "Brunes", "Carlos Edu",
+      "Pedro", "Esther", "Laís", "Vicky", "Bea", "Antônio", "J3", "Melo", "Exu", "Zé Pilantra",
+      "Tai Lung", "Scar", "Fiona", "Rasengan", "Genki Dama", "7 Minutos", "Australopiteco",
+      "Dona Honda", "Dona Monalisa", "Dona Leni", "Dona Verônica", "Dona Tayane",
+      "Serasa", "Cellbit", "Streaming", "Manteiga", "Santo Berço", "Suvaco Seco",
+      "Calamidade", "Diabo", "Sumarense", "Miojo com Salsicha", "CLT", "De Maluco", "Lapa",
+      "Macumba", "Corinthians", "Emilly", "Baranga", "Downy"
+    ]
+  },
+  "geral": {
+    "id": "geral",
+    "name": "Geral",
+    "description": "Vocabulário clássico e balanceado no estilo Codenames oficial.",
+    "words": [
+      "Tempo", "Estrela", "Espião", "Fogo", "Relógio", "Diamante", "Chocolate", "Selva", "Castelo",
+      "Pirata", "Satélite", "Vampiro", "Dragão", "Lua", "Vulcão", "Hospital", "Robô", "Café",
+      "Ouro", "Ilha", "Ponte", "Circo", "Trem", "Espelho", "Floresta", "Fantasma", "Dinossauro",
+      "Guitarra", "Coroa", "Máscara", "Espada", "Prisão", "Nave", "Cinema", "Polícia", "Tesouro",
+      "Neve", "Tubarão", "Laboratório", "Oceano", "Deserto", "Veneno", "Helicóptero", "Piano",
+      "Mágico", "Teatro", "Torre", "Safari", "Tempestade", "Galáxia", "Esqueleto", "Submarino",
+      "Faraó", "Vento", "Nuvem", "Bússola", "Câmera", "Banquete", "Microscópio", "Biblioteca",
+      "Esfinge", "Sombra", "Águia", "Pinguim", "Trincheira", "Múmia", "Saturno", "Cometa",
+      "Farol", "Telescópio", "Baleia", "Pólvora", "Geleira", "Labirinto", "Escultura", "Radar",
+      "Mina", "Metrô", "Princesa", "Cavaleiro", "Sinfonia", "Pirâmide", "Engrenagem", "Arco",
+      "Flecha", "Escudo", "Poção", "Alquimia", "Pérola", "Estátua", "Trovão", "Terremoto",
+      "Moinho", "Bandeira", "Oásis", "Cânion", "Búfalo", "Lobo", "Falcão", "Pantera", "Cobra",
+      "Camaleão", "Abelha", "Flor", "Cogumelo", "Raiz", "Cristal", "Mármore", "Cobre", "Prata",
+      "Bronze", "Aço"
+    ]
+  },
+  "adulto": {
+    "id": "adulto",
+    "name": "+18 Engraçado",
+    "description": "Vergonha alheia, situações constrangedoras e zoeira adulta sem ser erótico.",
+    "words": [
+      "Peido com Bosta", "Calcinha Bege", "Broxada Sinistra", "Gemidão no Velório", "Bêbado Mijado",
+      "Dedo no Cu e Gritaria", "Piroca Torta", "Camisinha Estourada", "Chifre Noturno", "Vaso Entupido",
+      "Diarréia no Primeiro Encontro", "Pau Mole", "Suruba de Idosos", "Teta Caída", "Cueca Freada",
+      "Fio Terra Acidental", "Mijo na Tampa", "Pelado na Janela", "Gemido Falso", "Bafo de Pica",
+      "Cueca Furada no Saco", "Chupão no Pescoço de Mãe", "Peido no Elevador", "Bosta Seca",
+      "Cagada Remunerada", "Vômito na Balada", "Calcinha Entalada", "Galo Cego", "Pau de Meia-Bomba",
+      "Dor de Barriga na Condução", "Surra de Pica Mole", "Mijada Fora do Vaso", "Soco no Saco",
+      "Cueca Amarela", "Ressaca de Corote", "Nude para o Grupo da Família", "Testículo Preso no Zíper",
+      "Fezes Petrificadas", "Peido Estridente", "Gordura Suada", "Ex Chata", "Trote da Prisão",
+      "Broxada com Plateia", "Virilha Assada", "Depilação no Dente", "Tapa no Escroto",
+      "Bunda Suada", "Vontade de Cagar na Estrada", "Camisinha de Sabor Alho", "Garganta Profunda com Engasgo"
+    ]
+  },
+  "dificeis": {
+    "id": "dificeis",
+    "name": "Difíceis",
+    "description": "Conceitos abstratos, filosóficos, científicos e difíceis de correlacionar.",
+    "words": [
+      "Entropia", "Paradoxo", "Epifania", "Solipsismo", "Yuxtaposição", "Quântico", "Efêmero",
+      "Melancolia", "Nihilismo", "Buraco Negro", "Metamorfose", "Existencialismo", "Dissonância",
+      "Pragmatismo", "Dialética", "Sinestesia", "Transcendência", "Quimera", "Inércia", "Ontologia",
+      "Relatividade", "Supernova", "Paradigma", "Causalidade", "Hiperbólico", "Simulacro", "Espectro",
+      "Dualidade", "Catarse", "Axioma", "Vórtice", "Horizonte de Eventos", "Dogma", "Antítese",
+      "Anacronismo", "Metonímia", "Hermético", "Sublime", "Vicário", "Tautologia", "Idiossincrasia",
+      "Heurística", "Paralaxe", "Apoteose", "Enteléquia", "Nó Górdio", "Dicotomia", "Holismo",
+      "Anomia", "Empirismo", "Semiótica", "Prolegômeno", "Panóptico", "Efeméride", "Metáfora",
+      "Esoterismo", "Gnose", "Demiurgo", "Inefável", "Singularidade", "Monólito", "Platônico",
+      "Metalinguagem", "Aporia", "Metempsicose", "Pós-Modernismo", "Aleph", "Palimpsesto"
+    ]
+  },
+  "imbecilidades": {
+    "id": "imbecilidades",
+    "name": "Imbecilidades",
+    "description": "Caos puro, situações idiotas, brainrot e palhaçadas sem sentido.",
+    "words": [
+      "Calvo aos 18", "Chute no Saco", "Monociclo", "Pato de Borracha", "Peido Molhado",
+      "Capivara Agiota", "Bananada", "Dança da Motinha", "Frango com Farofa", "Anão Bombado",
+      "Cabeça de Caixa D'Água", "Voadora no Peito", "Calopsita Raivosa", "Faustão Pelado",
+      "Pneu Furado", "Galinha de Peruca", "Picolé de Chuchu", "Boia de Cisne", "Cão Chupando Manga",
+      "Pandeiro Quebrado", "Meia Furada no Dedão", "Dançarino de Lambada", "Cueca Freada",
+      "Queijo Estragado", "Mico Leão de Sunga", "Peido Ninja", "Shrek de Terno", "Chinelo de Dedo",
+      "Gari do Espaço", "Cacetinho Amanteigado", "Palhaço Triste", "Cachorro Salsicha com Roupa",
+      "Liquidificador Quebrado", "Pamonha Assassina", "Pastel de Vento", "Choro no Banho",
+      "Perna de Pau", "Espingarda de Rolha", "Mendigo Gourmet", "Tombo de Bicicleta",
+      "Pau de Selfie", "Sogra no Domingo", "Copo Descartável Amassado", "Churrasco de Grelha Torta",
+      "Cabelo Lambido de Vaca", "Gordice de Madrugada", "Pé Descalço em Lego", "Unha Encravada",
+      "Biscoito ou Bolacha", "Golpe do Pix", "Gato Miando às 3 da Manhã", "Microondas Apitando"
+    ]
+  }
+}
