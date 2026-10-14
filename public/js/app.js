@@ -1,18 +1,36 @@
 // CodeNames dos Iluminados - Client Engine
 (function () {
+  // Helper for persistent player session ID (survives tab switches, screen locks, and reloads)
+  function getOrCreatePlayerId() {
+    let pid = localStorage.getItem('codenames_player_id');
+    if (!pid || pid.length < 5) {
+      pid = 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 9);
+      localStorage.setItem('codenames_player_id', pid);
+    }
+    return pid;
+  }
+
   // Determine backend and API endpoints:
-  // If frontend is hosted on Vercel, connect directly to persistent Render Node.js WebSocket backend!
-  const isVercel = window.location.hostname.includes('vercel.app');
-  const BACKEND_URL = isVercel
-    ? 'https://codenames-dos-iluminados.onrender.com'
-    : (window.location.protocol === 'file:' ? 'http://localhost:3333' : '');
-  const API_BASE = isVercel ? 'https://codenames-dos-iluminados.onrender.com' : '';
+  const isLocal = window.location.hostname === 'localhost' || 
+                  window.location.hostname === '127.0.0.1' || 
+                  window.location.hostname.startsWith('192.168.') || 
+                  window.location.hostname.startsWith('10.');
+  const isRender = window.location.hostname.includes('render.com');
+  const isFile = window.location.protocol === 'file:';
+
+  const BACKEND_URL = isFile
+    ? 'http://localhost:3333'
+    : (isLocal || isRender ? '' : 'https://codenames-dos-iluminados.onrender.com');
+  const API_BASE = BACKEND_URL;
 
   const socket = (typeof io !== 'undefined')
     ? io(BACKEND_URL, {
         transports: ['websocket', 'polling'],
-        reconnectionAttempts: 8,
-        timeout: 12000
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 25000
       })
     : null;
 
@@ -346,11 +364,14 @@
     // Fetch base & database custom decks
     fetchAllDecks();
 
-    // Check URL params
+    // Check URL params and active room session
     const urlParams = new URLSearchParams(window.location.search);
     const roomParam = urlParams.get('room');
+    const activeRoom = localStorage.getItem('codenames_active_room');
     if (roomParam) {
       inputRoomCode.value = roomParam.toUpperCase();
+    } else if (activeRoom) {
+      inputRoomCode.value = activeRoom.toUpperCase();
     }
 
     updateSoundIcons();
@@ -422,7 +443,15 @@
     if (currentGameState) {
       const confirmed = await showSystemConfirm('Deseja retornar ao menu inicial e sair da sala atual?', 'Sair da Sala', 'Sim, Sair', 'Permanecer');
       if (confirmed) {
-        window.location.href = window.location.pathname;
+        if (socket && socket.connected) {
+          socket.emit('LEAVE_ROOM');
+        }
+        localStorage.removeItem('codenames_active_room');
+        currentGameState = null;
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+        switchView('landing');
       }
     }
   });
@@ -475,6 +504,7 @@
         btnCreateRoom.textContent = 'Criar Nova Mesa';
         socket.emit('CREATE_ROOM', {
           nickname,
+          playerId: getOrCreatePlayerId(),
           selectedDeckIds: ['iluminados'],
           customDecks: customDecks,
           timerSeconds: 90
@@ -492,6 +522,7 @@
 
     socket.emit('CREATE_ROOM', {
       nickname,
+      playerId: getOrCreatePlayerId(),
       selectedDeckIds: ['iluminados'],
       customDecks: customDecks,
       timerSeconds: 90
@@ -527,7 +558,7 @@
         clearTimeout(timeoutId);
         btnJoinRoom.disabled = false;
         btnJoinRoom.textContent = 'Entrar na Sala';
-        socket.emit('JOIN_ROOM', { roomId: code, nickname });
+        socket.emit('JOIN_ROOM', { roomId: code, nickname, playerId: getOrCreatePlayerId() });
       });
       return;
     }
@@ -539,7 +570,7 @@
       btnJoinRoom.textContent = 'Entrar na Sala';
     }, 2500);
 
-    socket.emit('JOIN_ROOM', { roomId: code, nickname });
+    socket.emit('JOIN_ROOM', { roomId: code, nickname, playerId: getOrCreatePlayerId() });
   });
 
   // ========================================================
@@ -1036,7 +1067,15 @@
     if (!currentGameState || !currentGameState.you || !currentGameState.you.isHost) {
       const leave = await showSystemConfirm('Deseja sair da sala de jogo e voltar ao menu?', 'Sair da Sala', 'Sim, Sair', 'Permanecer');
       if (leave) {
-        window.location.href = window.location.pathname;
+        if (socket && socket.connected) {
+          socket.emit('LEAVE_ROOM');
+        }
+        localStorage.removeItem('codenames_active_room');
+        currentGameState = null;
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+        switchView('landing');
       }
       return;
     }
@@ -1126,18 +1165,115 @@
   });
 
   // ========================================================
-  // SOCKET.IO RECEIVERS
+  // SOCKET.IO RECEIVERS & SESSION RESILIENCE
   // ========================================================
+  let activeNetworkToast = null;
+  function showNetworkToast(message, type = 'warning', autoHideMs = 0) {
+    removeNetworkToast();
+    const toast = document.createElement('div');
+    toast.className = `network-status-toast ${type}`;
+    toast.innerHTML = `
+      ${type === 'warning' ? '<div class="network-status-spinner"></div>' : '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>'}
+      <span>${message}</span>
+    `;
+    document.body.appendChild(toast);
+    activeNetworkToast = toast;
+
+    if (autoHideMs > 0) {
+      setTimeout(() => {
+        if (activeNetworkToast === toast) {
+          removeNetworkToast();
+        }
+      }, autoHideMs);
+    }
+  }
+
+  function removeNetworkToast() {
+    if (activeNetworkToast && activeNetworkToast.parentNode) {
+      activeNetworkToast.parentNode.removeChild(activeNetworkToast);
+      activeNetworkToast = null;
+    }
+  }
+
+  // Socket connection and auto-reconnection handlers
+  socket.on('connect', () => {
+    removeNetworkToast();
+    const activeRoom = (currentGameState && currentGameState.roomId) || localStorage.getItem('codenames_active_room');
+    const playerId = getOrCreatePlayerId();
+    const nickname = (inputNickname && inputNickname.value.trim()) || localStorage.getItem('codenames_nick') || 'Membro Iluminado';
+
+    if (activeRoom) {
+      socket.emit('RECONNECT_ROOM', { roomId: activeRoom, playerId, nickname });
+    }
+  });
+
+  socket.on('disconnect', (reason) => {
+    if (reason !== 'io client disconnect') {
+      showNetworkToast('Conexão oscilou. Reconectando à sala...', 'warning');
+    }
+  });
+
+  socket.on('reconnect', () => {
+    showNetworkToast('Reconectado com sucesso!', 'success', 2500);
+  });
+
+  socket.on('PONG_HEARTBEAT', () => {
+    // Keep-alive acknowledgment
+  });
+
+  socket.on('ROOM_NOT_FOUND', () => {
+    localStorage.removeItem('codenames_active_room');
+    if (currentGameState) {
+      currentGameState = null;
+      switchView('landing');
+      showSystemAlert('A sala anterior foi finalizada ou não existe mais.', 'Sala Encerrada');
+    }
+  });
+
+  socket.on('RECONNECT_FAILED', () => {
+    localStorage.removeItem('codenames_active_room');
+  });
+
+  // Keep-alive heartbeat: guarantees proxies and mobile background sleep don't kill the TCP socket
+  setInterval(() => {
+    if (socket && socket.connected) {
+      socket.emit('PING_HEARTBEAT');
+    }
+  }, 12000);
+
+  // Instant refresh when user returns to tab / unlocks mobile screen
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      if (socket && !socket.connected) {
+        socket.connect();
+      } else if (socket && socket.connected) {
+        const activeRoom = (currentGameState && currentGameState.roomId) || localStorage.getItem('codenames_active_room');
+        const playerId = getOrCreatePlayerId();
+        const nickname = (inputNickname && inputNickname.value.trim()) || localStorage.getItem('codenames_nick') || 'Membro Iluminado';
+        if (activeRoom) {
+          socket.emit('RECONNECT_ROOM', { roomId: activeRoom, playerId, nickname });
+        }
+      }
+    }
+  });
+
   socket.on('ERROR', (data) => {
     showSystemAlert(data.message || 'Erro inesperado.', 'Aviso do Jogo', true);
   });
 
-  socket.on('ROOM_CREATED', () => {
-    // Will be updated by state update
+  socket.on('ROOM_CREATED', (data) => {
+    if (data && data.roomId) {
+      localStorage.setItem('codenames_active_room', data.roomId);
+    }
   });
 
-  socket.on('ROOM_JOINED', () => {
-    // Will be updated by state update
+  socket.on('ROOM_JOINED', (data) => {
+    if (data && data.roomId) {
+      localStorage.setItem('codenames_active_room', data.roomId);
+    }
+    if (data && data.reconnected) {
+      showNetworkToast('Sessão restabelecida na sala!', 'success', 2000);
+    }
   });
 
   socket.on('CARD_REVEALED_SOUND', ({ type, cardId, word }) => {
@@ -1334,11 +1470,11 @@
     const spectators = state.players.filter(p => p.team === 'spectator');
     spectators.forEach(p => {
       const el = document.createElement('div');
-      el.className = 'avatar-token';
+      el.className = `avatar-token ${p.connected === false ? 'is-disconnected' : ''}`;
       el.innerHTML = `
         ${p.isHost ? '<svg class="avatar-crown" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 8 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 8 12 2"></polygon></svg>' : ''}
         <div class="avatar-circle">${p.name.charAt(0).toUpperCase()}</div>
-        <div class="avatar-name" title="${p.name}">${p.name}</div>
+        <div class="avatar-name" title="${p.name}">${p.name}${p.connected === false ? ' <span class="chip-tag-disconnected">OFF</span>' : ''}</div>
       `;
       lobbySpectatorsContainer.appendChild(el);
     });
@@ -1359,13 +1495,15 @@
     // Helper to render player chip with bot tag and remove button
     function renderPlayerChip(p, isSpymasterRole = false, teamColor = '#70c9ff') {
       const botBadge = p.isBot ? `<span class="chip-tag-bot">BOT</span>` : '';
+      const disconnectBadge = p.connected === false ? `<span class="chip-tag-disconnected" title="Conexão oscilando, reconectando...">OFFLINE</span>` : '';
       const removeBtn = (isHost && p.isBot) ? `<button type="button" class="btn-chip-remove" data-botid="${p.id}" title="Remover Bot">×</button>` : '';
       const roleBadge = isSpymasterRole ? `<span style="font-size: 0.7rem; color: ${teamColor};">Mestre</span>` : '';
       return `
-        <div class="roster-player-chip">
+        <div class="roster-player-chip ${p.connected === false ? 'is-disconnected' : ''}">
           <div style="display: flex; align-items: center; gap: 6px;">
             <span>${p.name}</span>
             ${botBadge}
+            ${disconnectBadge}
             ${roleBadge}
           </div>
           ${removeBtn}
@@ -1723,9 +1861,10 @@
 
     if (gameBlueOperatives) {
       gameBlueOperatives.innerHTML = blueOps.length > 0 ? blueOps.map(p => `
-        <div class="arena-player-chip">
+        <div class="arena-player-chip ${p.connected === false ? 'is-disconnected' : ''}">
           <span class="chip-avatar blue">${p.name.charAt(0).toUpperCase()}</span>
           <span class="chip-name" title="${p.name}">${p.name}</span>
+          ${p.connected === false ? '<span class="chip-tag-disconnected" title="Reconectando...">OFF</span>' : ''}
           ${p.isBot ? '<span class="chip-tag-bot">BOT</span>' : ''}
         </div>
       `).join('') : '<div class="arena-empty-role">Sem agentes</div>';
@@ -1733,9 +1872,10 @@
 
     if (gameBlueSpymaster) {
       gameBlueSpymaster.innerHTML = blueSpy ? `
-        <div class="arena-player-chip">
+        <div class="arena-player-chip ${blueSpy.connected === false ? 'is-disconnected' : ''}">
           <span class="chip-avatar blue">${blueSpy.name.charAt(0).toUpperCase()}</span>
           <span class="chip-name" title="${blueSpy.name}">${blueSpy.name}</span>
+          ${blueSpy.connected === false ? '<span class="chip-tag-disconnected" title="Reconectando...">OFF</span>' : ''}
           ${blueSpy.isBot ? '<span class="chip-tag-bot">BOT</span>' : ''}
         </div>
       ` : '<div class="arena-empty-role">Sem mestre</div>';
@@ -1743,9 +1883,10 @@
 
     if (gameRedOperatives) {
       gameRedOperatives.innerHTML = redOps.length > 0 ? redOps.map(p => `
-        <div class="arena-player-chip">
+        <div class="arena-player-chip ${p.connected === false ? 'is-disconnected' : ''}">
           <span class="chip-avatar red">${p.name.charAt(0).toUpperCase()}</span>
           <span class="chip-name" title="${p.name}">${p.name}</span>
+          ${p.connected === false ? '<span class="chip-tag-disconnected" title="Reconectando...">OFF</span>' : ''}
           ${p.isBot ? '<span class="chip-tag-bot">BOT</span>' : ''}
         </div>
       `).join('') : '<div class="arena-empty-role">Sem agentes</div>';
@@ -1753,9 +1894,10 @@
 
     if (gameRedSpymaster) {
       gameRedSpymaster.innerHTML = redSpy ? `
-        <div class="arena-player-chip">
+        <div class="arena-player-chip ${redSpy.connected === false ? 'is-disconnected' : ''}">
           <span class="chip-avatar red">${redSpy.name.charAt(0).toUpperCase()}</span>
           <span class="chip-name" title="${redSpy.name}">${redSpy.name}</span>
+          ${redSpy.connected === false ? '<span class="chip-tag-disconnected" title="Reconectando...">OFF</span>' : ''}
           ${redSpy.isBot ? '<span class="chip-tag-bot">BOT</span>' : ''}
         </div>
       ` : '<div class="arena-empty-role">Sem mestre</div>';

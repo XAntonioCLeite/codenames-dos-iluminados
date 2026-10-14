@@ -10,7 +10,10 @@ const { createBot, BotManager } = require('./botService');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: '*' }
+  cors: { origin: '*' },
+  pingInterval: 10000,
+  pingTimeout: 8000,
+  connectTimeout: 30000
 });
 
 const PORT = process.env.PORT || 3333;
@@ -279,8 +282,24 @@ function addHistory(room, text, type = 'info') {
   if (room.history.length > 50) room.history.pop();
 }
 
-function getClientGameState(room, socketId) {
-  const player = room.players[socketId];
+function getPlayer(room, socketOrId) {
+  if (!room || !room.players) return null;
+  if (typeof socketOrId === 'string') {
+    if (room.players[socketOrId]) return room.players[socketOrId];
+    return Object.values(room.players).find(p => p.socketId === socketOrId || p.id === socketOrId) || null;
+  }
+  if (socketOrId && typeof socketOrId === 'object') {
+    if (socketOrId.playerId && room.players[socketOrId.playerId]) {
+      return room.players[socketOrId.playerId];
+    }
+    if (room.players[socketOrId.id]) return room.players[socketOrId.id];
+    return Object.values(room.players).find(p => p.socketId === socketOrId.id) || null;
+  }
+  return null;
+}
+
+function getClientGameState(room, socketOrId) {
+  const player = getPlayer(room, socketOrId);
   const isSpymaster = player && player.role === 'spymaster';
   const isGameOver = room.winner !== null;
 
@@ -296,6 +315,16 @@ function getClientGameState(room, socketId) {
 
   const redRemaining = room.board.filter(c => c.type === 'red' && !c.revealed).length;
   const blueRemaining = room.board.filter(c => c.type === 'blue' && !c.revealed).length;
+
+  const safePlayers = Object.values(room.players).map(p => ({
+    id: p.id,
+    name: p.name,
+    team: p.team,
+    role: p.role,
+    isHost: p.isHost,
+    isBot: p.isBot,
+    connected: p.connected !== false
+  }));
 
   return {
     roomId: room.id,
@@ -314,7 +343,7 @@ function getClientGameState(room, socketId) {
       redTotal: room.startingTeam === 'red' ? 9 : 8,
       blueTotal: room.startingTeam === 'blue' ? 9 : 8
     },
-    players: Object.values(room.players),
+    players: safePlayers,
     history: room.history,
     roundsHistory: room.roundsHistory,
     timer: {
@@ -328,15 +357,24 @@ function getClientGameState(room, socketId) {
       totalWordsPool: room.wordPool.length,
       extraWords: room.settings.extraWords || []
     },
-    you: player || null
+    you: player ? {
+      id: player.id,
+      name: player.name,
+      team: player.team,
+      role: player.role,
+      isHost: player.isHost,
+      isBot: player.isBot,
+      connected: player.connected !== false
+    } : null
   };
 }
 
 function broadcastRoomState(room) {
-  for (const socketId in room.players) {
-    if (!room.players[socketId].isBot) {
-      const state = getClientGameState(room, socketId);
-      io.to(socketId).emit('ROOM_STATE_UPDATE', state);
+  if (!room || !room.players) return;
+  for (const p of Object.values(room.players)) {
+    if (!p.isBot && p.socketId && p.connected !== false) {
+      const state = getClientGameState(room, p.id);
+      io.to(p.socketId).emit('ROOM_STATE_UPDATE', state);
     }
   }
 }
@@ -519,7 +557,7 @@ io.on('connection', (socket) => {
   let currentRoomId = null;
 
   // 1. Create Room
-  socket.on('CREATE_ROOM', async ({ nickname, selectedDeckIds, customDecks, timerSeconds }) => {
+  socket.on('CREATE_ROOM', async ({ nickname, playerId, selectedDeckIds, customDecks, timerSeconds }) => {
     try {
       const roomId = generateRoomId();
       const { uniquePool, decksUsedNames } = await buildWordPool(selectedDeckIds || ['iluminados'], customDecks || []);
@@ -555,24 +593,29 @@ io.on('connection', (socket) => {
         }
       };
 
+      const finalPlayerId = (playerId && String(playerId).trim()) || ('p_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7));
       const player = {
-        id: socket.id,
+        id: finalPlayerId,
+        socketId: socket.id,
         name: nickname || 'Membro Iluminado',
         team: 'spectator',
         role: 'spectator',
         isHost: true,
-        isBot: false
+        isBot: false,
+        connected: true,
+        lastSeen: Date.now()
       };
 
-      room.players[socket.id] = player;
+      room.players[finalPlayerId] = player;
       rooms.set(roomId, room);
 
+      socket.playerId = finalPlayerId;
       socket.join(roomId);
       currentRoomId = roomId;
 
       addHistory(room, `Sala criada por ${player.name}.`, 'system');
 
-      socket.emit('ROOM_CREATED', { roomId });
+      socket.emit('ROOM_CREATED', { roomId, playerId: finalPlayerId });
       broadcastRoomState(room);
     } catch (err) {
       console.error('Erro ao criar sala:', err);
@@ -581,7 +624,7 @@ io.on('connection', (socket) => {
   });
 
   // 2. Join Room
-  socket.on('JOIN_ROOM', ({ roomId, nickname }) => {
+  socket.on('JOIN_ROOM', ({ roomId, nickname, playerId }) => {
     const code = String(roomId).trim().toUpperCase();
     const room = rooms.get(code);
 
@@ -590,22 +633,164 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const player = {
-      id: socket.id,
+    const finalPlayerId = (playerId && String(playerId).trim()) || ('p_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7));
+    let player = room.players[finalPlayerId];
+
+    if (player) {
+      // Reconnecting existing player!
+      if (player.disconnectTimer) {
+        clearTimeout(player.disconnectTimer);
+        player.disconnectTimer = null;
+      }
+      player.socketId = socket.id;
+      player.connected = true;
+      player.lastSeen = Date.now();
+      if (nickname && nickname.trim()) player.name = nickname.trim();
+      socket.playerId = finalPlayerId;
+      socket.join(code);
+      currentRoomId = code;
+
+      socket.emit('ROOM_JOINED', { roomId: code, reconnected: true, playerId: finalPlayerId });
+      broadcastRoomState(room);
+      return;
+    }
+
+    const isFirstHuman = Object.values(room.players).filter(p => !p.isBot).length === 0;
+    player = {
+      id: finalPlayerId,
+      socketId: socket.id,
       name: nickname || 'Convidado ' + (Object.keys(room.players).length + 1),
       team: 'spectator',
       role: 'spectator',
-      isHost: Object.keys(room.players).length === 0,
-      isBot: false
+      isHost: isFirstHuman,
+      isBot: false,
+      connected: true,
+      lastSeen: Date.now()
     };
 
-    room.players[socket.id] = player;
+    room.players[finalPlayerId] = player;
+    socket.playerId = finalPlayerId;
     socket.join(code);
     currentRoomId = code;
 
     addHistory(room, `${player.name} entrou na sala como espectador.`, 'info');
-    socket.emit('ROOM_JOINED', { roomId: code });
+    socket.emit('ROOM_JOINED', { roomId: code, reconnected: false, playerId: finalPlayerId });
     broadcastRoomState(room);
+  });
+
+  // 2b. Reconnect Session
+  socket.on('RECONNECT_ROOM', ({ roomId, playerId, nickname }) => {
+    if (!roomId) return;
+    const code = String(roomId).trim().toUpperCase();
+    const room = rooms.get(code);
+
+    if (!room) {
+      socket.emit('ROOM_NOT_FOUND', { roomId: code });
+      return;
+    }
+
+    const finalPlayerId = playerId && String(playerId).trim();
+    if (!finalPlayerId) {
+      socket.emit('RECONNECT_FAILED', { message: 'Sessão anterior não informada.' });
+      return;
+    }
+
+    let player = room.players[finalPlayerId];
+    if (player) {
+      if (player.disconnectTimer) {
+        clearTimeout(player.disconnectTimer);
+        player.disconnectTimer = null;
+      }
+      player.socketId = socket.id;
+      player.connected = true;
+      player.lastSeen = Date.now();
+      if (nickname && nickname.trim()) player.name = nickname.trim();
+    } else {
+      // Re-add player if grace period was exceeded
+      const isFirstHuman = Object.values(room.players).filter(p => !p.isBot).length === 0;
+      player = {
+        id: finalPlayerId,
+        socketId: socket.id,
+        name: nickname || 'Convidado',
+        team: 'spectator',
+        role: 'spectator',
+        isHost: isFirstHuman,
+        isBot: false,
+        connected: true,
+        lastSeen: Date.now()
+      };
+      room.players[finalPlayerId] = player;
+      addHistory(room, `${player.name} retornou à sala.`, 'info');
+    }
+
+    socket.playerId = player.id;
+    socket.join(code);
+    currentRoomId = code;
+
+    socket.emit('ROOM_JOINED', { roomId: code, reconnected: true, playerId: player.id });
+    broadcastRoomState(room);
+  });
+
+  // 2c. Leave Room explicitly
+  socket.on('LEAVE_ROOM', () => {
+    if (currentRoomId) {
+      const room = rooms.get(currentRoomId);
+      if (room) {
+        const player = getPlayer(room, socket);
+        if (player && !player.isBot) {
+          if (player.disconnectTimer) {
+            clearTimeout(player.disconnectTimer);
+            player.disconnectTimer = null;
+          }
+          const wasHost = player.isHost;
+          const playerName = player.name;
+          delete room.players[player.id];
+          addHistory(room, `${playerName} saiu da sala.`, 'system');
+
+          const remainingHumans = Object.values(room.players).filter(p => !p.isBot);
+          if (wasHost && remainingHumans.length > 0) {
+            const nextHost = remainingHumans.find(p => p.connected) || remainingHumans[0];
+            nextHost.isHost = true;
+            addHistory(room, `${nextHost.name} assumiu como administrador da sala.`, 'system');
+          }
+
+          if (remainingHumans.length === 0) {
+            if (room.timerInterval) clearInterval(room.timerInterval);
+            botManager.clearRoomBotTimers(room.id);
+            setTimeout(() => {
+              const r = rooms.get(currentRoomId);
+              if (r && Object.values(r.players).filter(p => !p.isBot).length === 0) {
+                rooms.delete(currentRoomId);
+              }
+            }, 15 * 60 * 1000);
+          } else {
+            broadcastRoomState(room);
+          }
+        }
+      }
+      socket.leave(currentRoomId);
+      currentRoomId = null;
+      socket.playerId = null;
+    }
+  });
+
+  // 2d. Keep-Alive Heartbeat
+  socket.on('PING_HEARTBEAT', () => {
+    if (currentRoomId) {
+      const room = rooms.get(currentRoomId);
+      if (room) {
+        const player = getPlayer(room, socket);
+        if (player) {
+          player.lastSeen = Date.now();
+          player.connected = true;
+          if (player.disconnectTimer) {
+            clearTimeout(player.disconnectTimer);
+            player.disconnectTimer = null;
+          }
+        }
+      }
+    }
+    socket.emit('PONG_HEARTBEAT', { time: Date.now() });
   });
 
   // 3. Set Team and Role
@@ -614,7 +799,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(currentRoomId);
     if (!room) return;
 
-    const player = room.players[socket.id];
+    const player = getPlayer(room, socket);
     if (!player) return;
 
     if (room.lockTeamSwitching && !player.isHost) {
@@ -623,7 +808,7 @@ io.on('connection', (socket) => {
     }
 
     if (role === 'spymaster' && team !== 'spectator') {
-      const existing = Object.values(room.players).find(p => p.team === team && p.role === 'spymaster' && p.id !== socket.id);
+      const existing = Object.values(room.players).find(p => p.team === team && p.role === 'spymaster' && p.id !== player.id);
       if (existing) {
         if (existing.isBot) {
           delete room.players[existing.id];
@@ -648,7 +833,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(currentRoomId);
     if (!room) return;
 
-    const caller = room.players[socket.id];
+    const caller = getPlayer(room, socket);
     if (!caller || !caller.isHost) {
       socket.emit('ERROR', { message: 'Apenas o administrador pode adicionar bots.' });
       return;
@@ -676,7 +861,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(currentRoomId);
     if (!room) return;
 
-    const caller = room.players[socket.id];
+    const caller = getPlayer(room, socket);
     if (!caller || !caller.isHost) return;
 
     if (room.players[botId] && room.players[botId].isBot) {
@@ -693,7 +878,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(currentRoomId);
     if (!room) return;
 
-    const caller = room.players[socket.id];
+    const caller = getPlayer(room, socket);
     if (!caller || !caller.isHost) return;
 
     const currentPlayers = Object.values(room.players);
@@ -730,7 +915,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(currentRoomId);
     if (!room) return;
 
-    const caller = room.players[socket.id];
+    const caller = getPlayer(room, socket);
     if (!caller || !caller.isHost) {
       socket.emit('ERROR', { message: 'Apenas o administrador pode randomizar as equipes.' });
       return;
@@ -767,7 +952,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(currentRoomId);
     if (!room) return;
 
-    const caller = room.players[socket.id];
+    const caller = getPlayer(room, socket);
     if (!caller || !caller.isHost) {
       socket.emit('ERROR', { message: 'Apenas o administrador pode redefinir as equipes.' });
       return;
@@ -792,7 +977,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(currentRoomId);
     if (!room) return;
 
-    const caller = room.players[socket.id];
+    const caller = getPlayer(room, socket);
     if (!caller || !caller.isHost) {
       socket.emit('ERROR', { message: 'Apenas o administrador pode alterar o bloqueio de equipes.' });
       return;
@@ -809,7 +994,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(currentRoomId);
     if (!room) return;
 
-    const caller = room.players[socket.id];
+    const caller = getPlayer(room, socket);
     if (!caller || !caller.isHost) {
       socket.emit('ERROR', { message: 'Apenas o administrador pode alterar as configurações.' });
       return;
@@ -841,7 +1026,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(currentRoomId);
     if (!room) return;
 
-    const caller = room.players[socket.id];
+    const caller = getPlayer(room, socket);
     if (!caller) return;
 
     if (!room.settings.extraWords) room.settings.extraWords = [];
@@ -887,7 +1072,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(currentRoomId);
     if (!room) return;
 
-    const caller = room.players[socket.id];
+    const caller = getPlayer(room, socket);
     if (!caller || !caller.isHost) {
       socket.emit('ERROR', { message: 'Apenas o administrador da sala pode iniciar o jogo.' });
       return;
@@ -932,7 +1117,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(currentRoomId);
     if (!room || room.status !== 'playing' || room.winner) return;
 
-    const player = room.players[socket.id];
+    const player = getPlayer(room, socket);
     if (!player) return;
 
     if (player.team !== room.currentTurn || player.role !== 'spymaster' || room.turnPhase !== 'clue') {
@@ -949,7 +1134,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(currentRoomId);
     if (!room || room.status !== 'playing' || room.winner || room.turnPhase !== 'guess') return;
 
-    const player = room.players[socket.id];
+    const player = getPlayer(room, socket);
     if (!player || player.team !== room.currentTurn || player.role !== 'operative') return;
 
     executeSelectCard(room, player, cardId);
@@ -961,7 +1146,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(currentRoomId);
     if (!room || room.status !== 'playing' || room.winner || room.turnPhase !== 'guess') return;
 
-    const player = room.players[socket.id];
+    const player = getPlayer(room, socket);
     if (!player || player.team !== room.currentTurn || player.role !== 'operative') {
       socket.emit('ERROR', { message: 'Apenas Agentes do time em jogo podem confirmar palpites.' });
       return;
@@ -976,7 +1161,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(currentRoomId);
     if (!room || room.status !== 'playing' || room.winner || room.turnPhase !== 'guess') return;
 
-    const player = room.players[socket.id];
+    const player = getPlayer(room, socket);
     if (!player || player.team !== room.currentTurn || player.role !== 'operative') return;
 
     executeEndTurn(room, player);
@@ -988,7 +1173,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(currentRoomId);
     if (!room) return;
 
-    const caller = room.players[socket.id];
+    const caller = getPlayer(room, socket);
     if (!caller || !caller.isHost) {
       socket.emit('ERROR', { message: 'Apenas o administrador pode iniciar nova partida.' });
       return;
@@ -1029,7 +1214,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(currentRoomId);
     if (!room) return;
 
-    const caller = room.players[socket.id];
+    const caller = getPlayer(room, socket);
     if (!caller || !caller.isHost) {
       socket.emit('ERROR', { message: 'Apenas o administrador pode retornar ao lobby.' });
       return;
@@ -1050,32 +1235,54 @@ io.on('connection', (socket) => {
     broadcastRoomState(room);
   });
 
-  // 18. Disconnect
-  socket.on('disconnect', () => {
+  // 18. Disconnect (with 120s grace period)
+  socket.on('disconnect', (reason) => {
     if (currentRoomId) {
       const room = rooms.get(currentRoomId);
-      if (room && room.players[socket.id]) {
-        const wasHost = room.players[socket.id].isHost;
-        const playerName = room.players[socket.id].name;
-        delete room.players[socket.id];
-        addHistory(room, `${playerName} saiu da sala.`, 'system');
+      if (room) {
+        const player = getPlayer(room, socket);
+        if (player && !player.isBot) {
+          player.connected = false;
+          player.disconnectedAt = Date.now();
 
-        const remainingHumans = Object.values(room.players).filter(p => !p.isBot);
-        if (wasHost && remainingHumans.length > 0) {
-          remainingHumans[0].isHost = true;
-          addHistory(room, `${remainingHumans[0].name} assumiu como administrador da sala.`, 'system');
-        }
+          if (player.disconnectTimer) {
+            clearTimeout(player.disconnectTimer);
+          }
 
-        if (remainingHumans.length === 0) {
-          if (room.timerInterval) clearInterval(room.timerInterval);
-          botManager.clearRoomBotTimers(room.id);
-          setTimeout(() => {
+          // 120s grace period: keep slot, role, team and host intact
+          player.disconnectTimer = setTimeout(() => {
+            player.disconnectTimer = null;
             const r = rooms.get(currentRoomId);
-            if (r && Object.values(r.players).filter(p => !p.isBot).length === 0) {
-              rooms.delete(currentRoomId);
+            if (!r) return;
+            const p = r.players[player.id];
+            if (p && !p.connected) {
+              const wasHost = p.isHost;
+              const playerName = p.name;
+              delete r.players[p.id];
+              addHistory(r, `${playerName} saiu da sala (tempo de reconexão esgotado).`, 'system');
+
+              const remainingHumans = Object.values(r.players).filter(pl => !pl.isBot);
+              if (wasHost && remainingHumans.length > 0) {
+                const nextHost = remainingHumans.find(pl => pl.connected) || remainingHumans[0];
+                nextHost.isHost = true;
+                addHistory(r, `${nextHost.name} assumiu como administrador da sala.`, 'system');
+              }
+
+              if (remainingHumans.length === 0) {
+                if (r.timerInterval) clearInterval(r.timerInterval);
+                botManager.clearRoomBotTimers(r.id);
+                setTimeout(() => {
+                  const checkR = rooms.get(currentRoomId);
+                  if (checkR && Object.values(checkR.players).filter(pl => !pl.isBot).length === 0) {
+                    rooms.delete(currentRoomId);
+                  }
+                }, 15 * 60 * 1000);
+              } else {
+                broadcastRoomState(r);
+              }
             }
-          }, 15 * 60 * 1000);
-        } else {
+          }, 120000);
+
           broadcastRoomState(room);
         }
       }
